@@ -1,9 +1,9 @@
 {
   "file_format_version": "1.0.0",
   "layer": {
-    "name": "Vkvfb",
+    "name": "VK_LAYER_Vkvfb",
     "type": "GLOBAL",
-    "library_path": "./${SWAPCHAIN_LIBRARY_NAME}",
+    "library_path": "./@LIBRARY_NAME@",
     "api_version": "1.0.5",
     "implementation_version": "1",
     "description": "Virtual framebuffer vulkan layer",

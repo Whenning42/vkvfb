@@ -55,8 +55,8 @@ vklayer_lib = shared_library('VkLayer_Vkvfb',
 
 # Configure the JSON layer manifest
 conf_data = configuration_data()
-library_name = 'VkLayer_Vkvfb.dll'
-conf_data.set('SWAPCHAIN_LIBRARY_NAME', library_name)
+library_name = vklayer_lib.full_path().split('/')[-1]  # Gets just the filename
+conf_data.set('LIBRARY_NAME', library_name)
 
 # Generate the layer manifest JSON file
 json_file = configure_file(
