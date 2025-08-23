@@ -1,12 +1,12 @@
 {
   "file_format_version": "1.0.0",
   "layer": {
-    "name": "CallbackSwapchain",
+    "name": "Vkvfb",
     "type": "GLOBAL",
     "library_path": "./${SWAPCHAIN_LIBRARY_NAME}",
     "api_version": "1.0.5",
     "implementation_version": "1",
-    "description": "Callback Swapchain Layer",
+    "description": "Virtual framebuffer vulkan layer",
     "functions": {
       "vkGetDeviceProcAddr": "CallbackSwapchainGetDeviceProcAddr",
       "vkGetInstanceProcAddr": "CallbackSwapchainGetInstanceProcAddr"

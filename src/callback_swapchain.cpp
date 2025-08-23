@@ -315,6 +315,7 @@ void CallbackSwapchain::CopyThreadFunc() {
 
     VkResult ret = functions_->vkWaitForFences(
         device_, 1, &image_data_[pending_image].fence_, false, UINT64_MAX);
+    (void)ret;
     functions_->vkResetFences(device_, 1, &image_data_[pending_image].fence_);
 
     void* mapped_value;

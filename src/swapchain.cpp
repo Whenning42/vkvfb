@@ -17,6 +17,7 @@
 #include "swapchain.h"
 
 #include <cassert>
+#include <cstdlib>
 #include <vector>
 
 #include "callback_swapchain.h"

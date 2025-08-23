@@ -135,13 +135,14 @@ class CallbackSwapchain {
                         // have been submitted but not processed yet.
   std::deque<uint32_t> free_images_;  // Indices into image_data_ for all images
                                       // that are not currently in use.
-  VkDevice device_;  // The device that this swapchain belongs to.
-  VkCommandPool
-      command_pool_;  // The command_pool that we are allocating buffers from.
 
   // If should_close_ == true then the next time we wake up we should
   // terminate our thread.
   std::atomic<bool> should_close_;
+
+  VkDevice device_;  // The device that this swapchain belongs to.
+  VkCommandPool
+      command_pool_;  // The command_pool that we are allocating buffers from.
 
 // Some versions of the STL do not handle std::thread correctly,
 // use pthread/win thread instead.
