@@ -77,8 +77,8 @@ with open(f"tests/out/out_server_{args.mode}.txt", "w") as f:
     f.write(f"Running test for server: {args.mode}\n\n")
     f.flush()
     env = os.environ.copy()
-    p = subprocess.Popen("vkcube", stdout=f, stderr=f, env=env)
-    time.sleep(1)
+    p = subprocess.Popen(["vkcube", "--width", "640", "--height", "480"], stdout=f, stderr=f, env=env)
+    time.sleep(5)
 
     vkcube_ret = p.poll()
     if vkcube_ret:
