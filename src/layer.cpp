@@ -19,6 +19,7 @@
 
 #include <cstdio>
 #include <cstring>
+#include <iostream>
 #include <mutex>
 #include <type_traits>
 #include <unordered_map>
@@ -90,6 +91,8 @@ typename link_info_traits<T>::layer_info_type* get_layer_link_info(
 VKAPI_ATTR VkResult VKAPI_CALL vkCreateInstance(
     const VkInstanceCreateInfo* pCreateInfo,
     const VkAllocationCallbacks* pAllocator, VkInstance* pInstance) {
+  std::cout << "Vkvfb loaded." << std::endl;
+
   VkLayerInstanceCreateInfo* layer_info = get_layer_link_info(pCreateInfo);
 
   // Grab the pointer to the next vkGetInstanceProcAddr in the chain.

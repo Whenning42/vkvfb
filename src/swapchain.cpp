@@ -18,6 +18,7 @@
 
 #include <cassert>
 #include <cstdlib>
+#include <iostream>
 #include <vector>
 
 #include "callback_swapchain.h"
@@ -161,6 +162,10 @@ VKAPI_ATTR VkResult VKAPI_CALL vkGetPhysicalDeviceSurfacePresentModesKHR(
 VKAPI_ATTR VkResult VKAPI_CALL vkCreateSwapchainKHR(
     VkDevice device, const VkSwapchainCreateInfoKHR* pCreateInfo,
     const VkAllocationCallbacks* pAllocator, VkSwapchainKHR* pSwapchain) {
+  std::cout << "Creating swapchain with dimensions: " <<
+    pCreateInfo->imageExtent.width << "x" <<
+    pCreateInfo->imageExtent.height << std::endl;
+
   DeviceData& dev_dat = *GetGlobalContext().GetDeviceData(device);
   PhysicalDeviceData& pdd =
       *GetGlobalContext().GetPhysicalDeviceData(dev_dat.physicalDevice);
