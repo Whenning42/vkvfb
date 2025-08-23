@@ -1,44 +1,82 @@
-# Rendering benchmark: cpu usage + frame-rates for native desktop present vs no-op present on Xvfb desktop
-# - Benchmark program
-#   - Logs session type, cpu usage, frame rate, device name to a file
-#   - Session type from CLI, cpu usage from script, frame rate + device name from layer
-# - Vulkan layer
-#   - Passthrough
-#   - No-present
-# - Compare how no-present Xvfb compares to present Xvfb and Xorg.
-
-# Flags:
-# - Display
-
-# Writes benchmark.txt with:
-# - Device name
-# - Average cpu usage over a few seconds
-# - Swapchain image size
+# Rendering benchmark for comparing CPU usage between native desktop and Xvfb environments
+#
+# Two modes:
+# 1. Native: Runs vkcube on the current desktop environment
+# 2. Xvfb: Finds an available X display, starts Xvfb server, and runs vkcube under it
+#
+# The script monitors vkcube's CPU usage and logs the results to files in the out/ directory.
+# In Xvfb mode, the script automatically manages the virtual display server lifecycle.
+#
+# Usage:
+# $ python tests/render_benchmark.py native
 
 import subprocess
 import time
 import argparse
 import os
+import glob
+
+
+def find_available_display():
+    """Find an available X display number by checking /tmp/.X*-lock files"""
+    existing_displays = []
+
+    # Check for existing X lock files
+    lock_files = glob.glob("/tmp/.X*-lock")
+    for lock_file in lock_files:
+        display_num = lock_file.split(".X")[1].split("-")[0]
+        if display_num.isdigit():
+            existing_displays.append(int(display_num))
+
+    # Find the next available display number
+    display_num = 0
+    while display_num in existing_displays:
+        display_num += 1
+
+    return display_num
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument("server_type", help="A string saying what type of xserver you're running on. Must be Xorg or Xvfb.")
-parser.add_argument("display", help='Which display to run the test on e.g. ":0"')
+parser.add_argument("mode", help="A string saying which mode to run in. Must be either native or xvfb.")
 args = parser.parse_args()
 
-if args.server_type.lower() not in ["xorg", "xvfb"]:
-    print(f'Unrecognized server type: {args.server_type}')
+if args.mode.lower() not in ["native", "xvfb"]:
+    print(f'Unrecognized mode: {args.mode}')
     exit()
 
-if not args.display[0] == ":":
-    print('Invalid display string. Expected for a string like ":0"')
-    exit()
+# Ensure output directory exists
+os.makedirs("tests/out", exist_ok=True)
 
-with open(f"out/out_server_{args.server_type}.txt", "w") as f:
-    f.write(f"Running test for server: {args.server_type}\n\n")
+mode = args.mode.lower()
+xvfb_process = None
+
+# If running in Xvfb mode, start Xvfb server
+if mode == "xvfb":
+    display_num = find_available_display()
+    display_str = f":{display_num}"
+    print(f"Starting Xvfb on display {display_str}")
+
+    xvfb_cmd = ["Xvfb", display_str, "-screen", "0", "1024x768x24"]
+    xvfb_process = subprocess.Popen(xvfb_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+    # Give Xvfb time to start
+    time.sleep(2)
+
+    # Set DISPLAY environment variable
+    os.environ["DISPLAY"] = display_str
+
+    # Set vkvfb layer environment variables for xvfb mode
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    build_dir = os.path.join(project_root, "build")
+
+    os.environ["LD_LIBRARY_PATH"] = build_dir
+    os.environ["VK_LAYER_PATH"] = build_dir
+    os.environ["VK_INSTANCE_LAYERS"] = "VK_LAYER_Vkvfb"
+
+with open(f"tests/out/out_server_{args.mode}.txt", "w") as f:
+    f.write(f"Running test for server: {args.mode}\n\n")
     f.flush()
-    env = os.environ
-    env["DISPLAY"] = args.display
+    env = os.environ.copy()
     p = subprocess.Popen("vkcube", stdout=f, stderr=f, env=env)
     time.sleep(1)
 
@@ -48,8 +86,11 @@ with open(f"out/out_server_{args.server_type}.txt", "w") as f:
         f.flush()
         exit()
 
-    ps_out = subprocess.run(["ps", "-p", str(p.pid), "-o", "%cpu"], capture_output=True, text=True)
-    f.write("vkcube cpu usage:\n")
-    f.write(ps_out.stdout)
+    ps_out = subprocess.run(["ps", "--no-headers", "-p", str(p.pid), "-o", "%cpu"], capture_output=True, text=True)
+    f.write(f"vkcube CPU usage: {ps_out.stdout.strip()}%\n")
     p.terminate()
+
+# Clean up Xvfb if it was started
+if xvfb_process is not None:
+    xvfb_process.terminate()
 
