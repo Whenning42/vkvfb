@@ -34,6 +34,7 @@ sources = [
   'src/layer.cpp',
   'src/swapchain.cpp',
   'src/callback_swapchain.cpp',
+  'src/present_callback.cpp',
   'src/shm.cpp',
   'src/shm_pixbuf_reader.cpp',
   'src/shm_pixbuf_writer.cpp',
@@ -46,6 +47,8 @@ headers = [
   'src/swapchain.h',
   'src/threading.h',
   'src/callback_swapchain.h',
+  'src/present_callback.h',
+  'src/generic_unique_ptr.h',
   'src/shm.h',
   'src/shm_pixbuf_data.h',
   'src/shm_pixbuf_reader.h',
@@ -96,3 +99,16 @@ test_exe = executable('shm_pixbuf_reader_test',
 )
 
 test('shm_pixbuf_reader_test', test_exe)
+
+snapshot_vfb_sources = [
+  'tests/snapshot_vfb.cpp',
+  'src/shm.cpp',
+  'src/shm_pixbuf_reader.cpp',
+  'src/timeout_sem.cpp',
+]
+
+snapshot_vfb_exe = executable('snapshot_vfb',
+  snapshot_vfb_sources,
+  cpp_args: cpp_args,
+  include_directories: include_directories(inc_dirs),
+)

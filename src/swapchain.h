@@ -13,22 +13,45 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+/*
+ * Modifications copyright (C) 2025 William Henning
+ * Changes: Add virtual framebuffer implementation. Drop non-X wsi's.
+ */
 
 #ifndef VK_CALLBACK_SWAPCHAIN_SWAPCHAIN_H_
 #define VK_CALLBACK_SWAPCHAIN_SWAPCHAIN_H_
+
+#include <string>
+#include <vulkan/vulkan.h>
+#include <X11/Xlib.h>
+#include <xcb/xcb.h>
+#include <vulkan/vulkan_xlib.h>
+#include <vulkan/vulkan_xcb.h>
+
 #include "layer.h"
 
 namespace swapchain {
+
+struct CallbackSurface {
+  std::string window_name;
+  CallbackSurface(const std::string& window_name): window_name(window_name) {}
+};
 
 // RegisterInstance set up all of the swapchain related physical
 // device data associated with an instance.
 void RegisterInstance(VkInstance instance, InstanceData& data);
 
-// All of the following functions are the same as the Vulkan functions
-// with the same names. vkCreateCallbackSurface can be used interchangeably
-// with any vkCreate*Surface, since it ignores its pCreateInfo parameter.
-VKAPI_ATTR VkResult VKAPI_CALL vkCreateCallbackSurface(
-    VkInstance instance, const void * /*pCreateInfo*/,
+VKAPI_ATTR VkResult VKAPI_CALL vkCreateXlibSurfaceKHR(
+    VkInstance instance, const VkXlibSurfaceCreateInfoKHR* pCreateInfo,
+    const VkAllocationCallbacks *pAllocator, VkSurfaceKHR *pSurface);
+
+VKAPI_ATTR VkResult VKAPI_CALL vkCreateXcbSurfaceKHR(
+    VkInstance instance, const VkXcbSurfaceCreateInfoKHR* pCreateInfo,
+    const VkAllocationCallbacks *pAllocator, VkSurfaceKHR *pSurface);
+
+
+VKAPI_ATTR VkResult VKAPI_CALL CreateSurface(
+    VkInstance instance, const void* pCreateInfo, VkStructureType createType,
     const VkAllocationCallbacks *pAllocator, VkSurfaceKHR *pSurface);
 
 VKAPI_ATTR VkResult VKAPI_CALL vkGetPhysicalDeviceSurfaceSupportKHR(
@@ -62,10 +85,6 @@ VKAPI_ATTR VkResult VKAPI_CALL vkGetSwapchainImagesKHR(
 VKAPI_ATTR VkResult VKAPI_CALL vkAcquireNextImageKHR(
     VkDevice device, VkSwapchainKHR swapchain, uint64_t timeout,
     VkSemaphore semaphore, VkFence fence, uint32_t *pImageIndex);
-
-VKAPI_ATTR void VKAPI_CALL
-vkSetSwapchainCallback(VkSwapchainKHR swapchain,
-                       void callback(void *, uint8_t *, size_t), void *);
 
 VKAPI_ATTR VkResult VKAPI_CALL
 vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR *pPresentInfo);

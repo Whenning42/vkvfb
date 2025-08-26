@@ -13,6 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+/*
+ * Modifications copyright (C) 2025 William Henning
+ * Changes: Add virtual framebuffer implementation. Drop non-X wsi's.
+ */
 
 #include "swapchain.h"
 
@@ -20,8 +24,11 @@
 #include <cstdlib>
 #include <iostream>
 #include <vector>
+#include <X11/Xlib.h>
+#include <xcb/xcb.h>
 
 #include "callback_swapchain.h"
+#include "present_callback.h"
 
 namespace swapchain {
 
@@ -45,15 +52,39 @@ void RegisterInstance(VkInstance instance, InstanceData& data) {
   }
 }
 
-// For now CallbackSurface is empty. Once we start tracking more
-// information from the host, then we can start expanding
-// what we are able to expose here.
-struct CallbackSurface {};
-
-VKAPI_ATTR VkResult VKAPI_CALL vkCreateCallbackSurface(
-    VkInstance instance, const void* /*pCreateInfo*/,
+VKAPI_ATTR VkResult VKAPI_CALL vkCreateXlibSurfaceKHR(
+    VkInstance instance, const VkXlibSurfaceCreateInfoKHR* pCreateInfo,
     const VkAllocationCallbacks* pAllocator, VkSurfaceKHR* pSurface) {
-  *pSurface = reinterpret_cast<VkSurfaceKHR>(new CallbackSurface());
+  return CreateSurface(instance,
+                       pCreateInfo,
+                       VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR,
+                       pAllocator,
+                       pSurface);
+}
+
+VKAPI_ATTR VkResult VKAPI_CALL vkCreateXcbSurfaceKHR(
+    VkInstance instance, const VkXcbSurfaceCreateInfoKHR* pCreateInfo,
+    const VkAllocationCallbacks* pAllocator, VkSurfaceKHR* pSurface) {
+  return CreateSurface(instance,
+                       pCreateInfo,
+                       VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR,
+                       pAllocator,
+                       pSurface);
+}
+
+VKAPI_ATTR VkResult VKAPI_CALL CreateSurface(
+    VkInstance instance, const void* pCreateInfo, VkStructureType createType,
+    const VkAllocationCallbacks* pAllocator, VkSurfaceKHR* pSurface) {
+  std::string window_name;
+  if (createType == VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR) {
+    const VkXlibSurfaceCreateInfoKHR& info = *(VkXlibSurfaceCreateInfoKHR*)pCreateInfo;
+    window_name = std::to_string(static_cast<unsigned long>(info.window));
+  }
+  if (createType == VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR) {
+    const VkXcbSurfaceCreateInfoKHR& info = *(VkXcbSurfaceCreateInfoKHR*)pCreateInfo;
+    window_name = std::to_string(static_cast<uint32_t>(info.window));
+  }
+  *pSurface = reinterpret_cast<VkSurfaceKHR>(new CallbackSurface(window_name));
   return VK_SUCCESS;
 }
 
@@ -186,9 +217,19 @@ VKAPI_ATTR VkResult VKAPI_CALL vkCreateSwapchainKHR(
 
   assert(queue < queue_properties.size());
 
-  *pSwapchain = reinterpret_cast<VkSwapchainKHR>(new CallbackSwapchain(
+  CallbackSwapchain* swapchain = new CallbackSwapchain(
       device, queue, &pdd.physical_device_properties_, &pdd.memory_properties_,
-      &dev_dat, pCreateInfo, pAllocator));
+      &dev_dat, pCreateInfo, pAllocator);
+  *pSwapchain = reinterpret_cast<VkSwapchainKHR>(swapchain);
+
+  VkSurfaceKHR vk_surface = pCreateInfo->surface;
+  CallbackSurface& surface = *reinterpret_cast<CallbackSurface*>(vk_surface);
+  const uint32_t w = pCreateInfo->imageExtent.width;
+  const uint32_t h = pCreateInfo->imageExtent.height;
+  generic_unique_ptr present_data =
+      make_generic_unique(new PresentData(w, h, surface.window_name));
+  swapchain->SetCallback(present_callback, std::move(present_data));
+
   return VK_SUCCESS;
 }
 
@@ -228,17 +269,6 @@ VKAPI_ATTR VkResult VKAPI_CALL vkGetSwapchainImagesKHR(
   return res;
 }
 
-VKAPI_ATTR void VKAPI_CALL vkSetSwapchainCallback(VkSwapchainKHR swapchain,
-                                                  void callback(void*, uint8_t*,
-                                                                size_t),
-                                                  void* user_data) {
-  // Force unwarping from higher layer when the env is set.
-  if (getenv("FORCE_UNWRAP_SWAPCHAIN_HANDLE")) {
-    swapchain = *reinterpret_cast<VkSwapchainKHR*>(swapchain);
-  }
-  CallbackSwapchain* swp = reinterpret_cast<CallbackSwapchain*>(swapchain);
-  swp->SetCallback(callback, user_data);
-}
 
 // We actually have to be able to submit data to the Queue right now.
 // The user can supply either a semaphore, or a fence or both to this function.

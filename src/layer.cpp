@@ -16,6 +16,10 @@
 
 #include <vulkan/vk_layer.h>
 #include <vulkan/vulkan.h>
+#include <X11/Xlib.h>
+#include <xcb/xcb.h>
+#include <vulkan/vulkan_xlib.h>
+#include <vulkan/vulkan_xcb.h>
 
 #include <cstdio>
 #include <cstring>
@@ -468,23 +472,11 @@ vkGetInstanceProcAddr(VkInstance instance, const char* funcName) {
 
   INTERCEPT(vkAllocateCommandBuffers);
   INTERCEPT(vkFreeCommandBuffers);
-  INTERCEPT(vkSetSwapchainCallback);
+
+  INTERCEPT(vkCreateXcbSurfaceKHR);
+  INTERCEPT(vkCreateXlibSurfaceKHR);
 #undef INTERCEPT
 
-#define INTERCEPT_SURFACE(name) \
-  if (!strcmp(funcName, #name)) \
-  return reinterpret_cast<PFN_vkVoidFunction>(vkCreateCallbackSurface)
-
-  // Since we are faking our swapchains, we also have to fake the surface.
-  // Intercept all of the surface creation routines for all platforms.
-  INTERCEPT_SURFACE(vkCreateAndroidSurfaceKHR);
-  INTERCEPT_SURFACE(vkCreateMirSurfaceKHR);
-  INTERCEPT_SURFACE(vkCreateStreamDescriptorSurfaceGGP);
-  INTERCEPT_SURFACE(vkCreateWaylandSurfaceKHR);
-  INTERCEPT_SURFACE(vkCreateWin32SurfaceKHR);
-  INTERCEPT_SURFACE(vkCreateXcbSurfaceKHR);
-  INTERCEPT_SURFACE(vkCreateXlibSurfaceKHR);
-#undef INTERCEPT_SURFACE
   // If we are calling a non-overloaded function then we have to
   // return the "next" in the chain. On vkCreateInstance we stored this in
   // the map so we can call it here.
@@ -520,7 +512,6 @@ vkGetDeviceProcAddr(VkDevice dev, const char* funcName) {
 
   INTERCEPT(vkAllocateCommandBuffers);
   INTERCEPT(vkFreeCommandBuffers);
-  INTERCEPT(vkSetSwapchainCallback);
 #undef INTERCEPT
 
   // If we are calling a non-overloaded function then we have to

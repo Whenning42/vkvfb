@@ -12,10 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- */
-/*
+ *
+ *
  * Modifications copyright (C) 2025 William Henning
- * Changes: Reformat comments.
+ * Changes: Switch user_data from void* to generic unique ptr.
  */
 
 #ifndef VK_CALLBACK_SWAPCHAIN_CALLBACK_SWAPCHAIN_H_
@@ -28,6 +28,7 @@
 #include <functional>
 #include <mutex>
 
+#include "generic_unique_ptr.h"
 #include "layer.h"
 
 namespace swapchain {
@@ -52,9 +53,11 @@ class CallbackSwapchain {
                     bool always_get_acquired_image = false);
   // Call this to release all of the resources associated with this object.
   void Destroy(const VkAllocationCallbacks* pAllocator);
+
   // Sets the function to be called when a frame has completed, along with a piece of
   // user-data to be passed.
-  void SetCallback(void callback(void*, uint8_t*, size_t), void*);
+  void SetCallback(void callback(void*, uint8_t*, size_t), generic_unique_ptr&& user_data);
+
   // Returns in *image the index of the next free image. Returns false
   // if timeout nanoseconds have passed and no image could be returned.
   // If timeout is UINT64_MAX, then this function will wait forever.
@@ -160,7 +163,7 @@ class CallbackSwapchain {
   threading::mutex free_images_lock_;
 
   void (*callback_)(void*, uint8_t*, size_t);
-  void* callback_user_data_;
+  generic_unique_ptr user_data_;
 
   const uint32_t queue_;
   const DeviceData* functions_;
@@ -174,7 +177,6 @@ class CallbackSwapchain {
   // false, GetImage() will write the index of a randomly free image to the
   // given index pointer.
   bool always_get_acquired_image_;
-  // Function to build swapchain images
   std::function<SwapchainImageData()> build_swapchain_image_data_;
 };
 }  // namespace swapchain

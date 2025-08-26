@@ -12,6 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ *
+ * Modifications copyright (C) 2025 William Henning
+ * Changes: Switch user_data from void* to generic unique ptr.
  */
 
 #include "callback_swapchain.h"
@@ -331,7 +335,7 @@ void CallbackSwapchain::CopyThreadFunc() {
     functions_->vkInvalidateMappedMemoryRanges(device_, 1, &range);
 
     uint32_t length = ImageByteSize();
-    { callback_(callback_user_data_, (uint8_t*)mapped_value, length); }
+    { callback_(user_data_.get(), (uint8_t*)mapped_value, length); }
     functions_->vkUnmapMemory(device_,
                               image_data_[pending_image].buffer_memory_);
     {
@@ -380,9 +384,9 @@ bool CallbackSwapchain::GetImage(uint64_t timeout, uint32_t* image) {
 }
 
 void CallbackSwapchain::SetCallback(void callback(void*, uint8_t*, size_t),
-                                    void* user_data) {
+                                    generic_unique_ptr&& user_data) {
   callback_ = callback;
-  callback_user_data_ = user_data;
+  user_data_ = std::move(user_data);
 }
 
 uint32_t CallbackSwapchain::ImageByteSize() const {
