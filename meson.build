@@ -15,7 +15,7 @@
 project('VkCallbackSwapchain', 'cpp',
   version: '0.0.0',
   default_options: [
-    'cpp_std=c++11',
+    'cpp_std=c++17',
     'warning_level=1',
   ]
 )
@@ -26,11 +26,18 @@ if not (host_machine.system() == 'windows')
   cpp_args += ['-fno-rtti', '-fno-exceptions']
 endif
 
+# Dependencies
+gtest_dep = dependency('gtest', main: true)
+
 # Source files
 sources = [
   'src/layer.cpp',
   'src/swapchain.cpp',
   'src/callback_swapchain.cpp',
+  'src/shm.cpp',
+  'src/shm_pixbuf_reader.cpp',
+  'src/shm_pixbuf_writer.cpp',
+  'src/timeout_sem.cpp',
 ]
 
 # Headers (for IDE support)
@@ -39,6 +46,11 @@ headers = [
   'src/swapchain.h',
   'src/threading.h',
   'src/callback_swapchain.h',
+  'src/shm.h',
+  'src/shm_pixbuf_data.h',
+  'src/shm_pixbuf_reader.h',
+  'src/shm_pixbuf_writer.h',
+  'src/timeout_sem.h',
 ]
 
 # Include directories
@@ -66,3 +78,21 @@ json_file = configure_file(
   install: true,
   install_dir: get_option('libdir')
 )
+
+# Unit tests
+test_sources = [
+  'src/shm_pixbuf_reader_test.cpp',
+  'src/shm.cpp',
+  'src/shm_pixbuf_reader.cpp',
+  'src/shm_pixbuf_writer.cpp',
+  'src/timeout_sem.cpp',
+]
+
+test_exe = executable('shm_pixbuf_reader_test',
+  test_sources,
+  dependencies: gtest_dep,
+  cpp_args: cpp_args,
+  include_directories: include_directories(inc_dirs),
+)
+
+test('shm_pixbuf_reader_test', test_exe)
