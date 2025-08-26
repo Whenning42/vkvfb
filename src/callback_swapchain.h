@@ -13,6 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+/*
+ * Modifications copyright (C) 2025 William Henning
+ * Changes: Reformat comments.
+ */
 
 #ifndef VK_CALLBACK_SWAPCHAIN_CALLBACK_SWAPCHAIN_H_
 #define VK_CALLBACK_SWAPCHAIN_CALLBACK_SWAPCHAIN_H_
@@ -48,8 +52,8 @@ class CallbackSwapchain {
                     bool always_get_acquired_image = false);
   // Call this to release all of the resources associated with this object.
   void Destroy(const VkAllocationCallbacks* pAllocator);
-  // Sets the function to be called when a frame has completed, along with
-  // a piece of user-data to be passed.
+  // Sets the function to be called when a frame has completed, along with a piece of
+  // user-data to be passed.
   void SetCallback(void callback(void*, uint8_t*, size_t), void*);
   // Returns in *image the index of the next free image. Returns false
   // if timeout nanoseconds have passed and no image could be returned.
@@ -103,6 +107,7 @@ class CallbackSwapchain {
 
  private:
   const VkSwapchainCreateInfoKHR swapchain_info_;
+
   // This is the entry-point to our secondary thread.
   // It is responsible for keeping track of copies, and calling the
   // callback when a copy has completed.
@@ -124,25 +129,22 @@ class CallbackSwapchain {
 
   // In our constructor we rely on num_images_ being
   // initialized first, so don't move anything above it.
-  uint32_t num_images_;  // The number of images requested.
+  uint32_t num_images_;
+  uint32_t width_;
+  uint32_t height_;
+  // All of the data for each requested swapchain image.
+  std::deque<SwapchainImageData> image_data_;
+  // Indices into image_data_ for all images that have been submitted but not processed
+  // yet.
+  std::deque<uint32_t> pending_images_;
+  // Indices into image_data_ for all images that are not currently in use.
+  std::deque<uint32_t> free_images_;
 
-  uint32_t width_;   // The width of our swapchain.
-  uint32_t height_;  // The height of our swapchain.
-  std::deque<SwapchainImageData>
-      image_data_;  // All of the data for each requested swapchain image.
-  std::deque<uint32_t>
-      pending_images_;  // Indices into image_data_ for all images that
-                        // have been submitted but not processed yet.
-  std::deque<uint32_t> free_images_;  // Indices into image_data_ for all images
-                                      // that are not currently in use.
-
-  // If should_close_ == true then the next time we wake up we should
-  // terminate our thread.
+  // When 'should_close_' is true, we terminate our thread on next wake.
   std::atomic<bool> should_close_;
 
-  VkDevice device_;  // The device that this swapchain belongs to.
-  VkCommandPool
-      command_pool_;  // The command_pool that we are allocating buffers from.
+  VkDevice device_;
+  VkCommandPool command_pool_;
 
 // Some versions of the STL do not handle std::thread correctly,
 // use pthread/win thread instead.
@@ -152,28 +154,16 @@ class CallbackSwapchain {
   pthread_t thread_;
 #endif
 
-  threading::condition_variable
-      pending_images_condition_;  // Condition variable
-                                  // to wait for
-                                  // pending_images_ to
-                                  // contain an image.
-  threading::mutex
-      pending_images_lock_;  // The lock for modifying our pending images list.
+  threading::condition_variable pending_images_condition_;  
+  threading::mutex pending_images_lock_;  
+  threading::condition_variable free_images_condition_;
+  threading::mutex free_images_lock_;
 
-  threading::condition_variable free_images_condition_;  // The condition
-                                                         // variable to wait on
-                                                         // for free_images_ to
-                                                         // contain an image.
+  void (*callback_)(void*, uint8_t*, size_t);
+  void* callback_user_data_;
 
-  threading::mutex
-      free_images_lock_;  // The lock for modifying our free images list.
-
-  void (*callback_)(void*, uint8_t*, size_t);  // The user-supplied callback.
-  void* callback_user_data_;  // The user-data to pass to this callback.
-
-  const uint32_t queue_;  // the queue that we need to use to signal things
-  const DeviceData* functions_;  // All of the resolved function pointers that
-                                 // we need to call.
+  const uint32_t queue_;
+  const DeviceData* functions_;
 
   // This is how many milliseconds we should wait for an image before waking up
   // and seeing if we should shut down.
