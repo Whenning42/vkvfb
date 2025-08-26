@@ -18,7 +18,12 @@
 
 void present_callback(void* user_data, uint8_t* pixels, size_t pixels_size) {
   PresentData& present_data = *(PresentData*)user_data;
-  present_data.writer.write_pixels(pixels, present_data.width, present_data.height);
+  bool force_opaque = false;
+  if (present_data.composite_mode == VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR) {
+    force_opaque = true;
+  }
+
+  present_data.writer.write_pixels(pixels, present_data.width, present_data.height, force_opaque=force_opaque);
 }
 
 void cleanup_callback(void* user_data) {

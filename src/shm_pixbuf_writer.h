@@ -27,7 +27,7 @@
 class ShmPixbufWriter {
  public:
   ShmPixbufWriter(const std::string& path);
-  void write_pixels(const uint8_t* pixels, int32_t width, int32_t height);
+  void write_pixels(const uint8_t* pixels, int32_t width, int32_t height, bool force_opaque=false);
 
  private:
    Shm shm_;

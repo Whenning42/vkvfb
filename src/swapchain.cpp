@@ -226,8 +226,9 @@ VKAPI_ATTR VkResult VKAPI_CALL vkCreateSwapchainKHR(
   CallbackSurface& surface = *reinterpret_cast<CallbackSurface*>(vk_surface);
   const uint32_t w = pCreateInfo->imageExtent.width;
   const uint32_t h = pCreateInfo->imageExtent.height;
+  const VkCompositeAlphaFlagBitsKHR composite_mode = pCreateInfo->compositeAlpha;
   generic_unique_ptr present_data =
-      make_generic_unique(new PresentData(w, h, surface.window_name));
+      make_generic_unique(new PresentData(w, h, surface.window_name, composite_mode));
   swapchain->SetCallback(present_callback, std::move(present_data));
 
   return VK_SUCCESS;

@@ -20,6 +20,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <string>
+#include <vulkan/vulkan.h>
 
 #include "shm_pixbuf_writer.h"
 
@@ -29,9 +30,10 @@ struct PresentData {
   int32_t width;
   int32_t height;
   ShmPixbufWriter writer;
+  VkCompositeAlphaFlagBitsKHR composite_mode;
 
-  PresentData(int32_t width, int32_t height, const std::string& pixbuf_name):
-   width(width), height(height), writer(pixbuf_name) {}
+  PresentData(int32_t w, int32_t h, const std::string& window_name, VkCompositeAlphaFlagBitsKHR mode)
+    : width(w), height(h), writer(window_name), composite_mode(mode) {}
 };
 
 void present_callback(void* user_data, uint8_t* pixels, size_t pixels_size);
