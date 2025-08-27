@@ -112,3 +112,19 @@ snapshot_vfb_exe = executable('snapshot_vfb',
   cpp_args: cpp_args,
   include_directories: include_directories(inc_dirs),
 )
+
+vfbmon_sources = [
+  'tests/vfbmon.cpp',
+  'src/shm.cpp',
+  'src/shm_pixbuf_reader.cpp',
+  'src/timeout_sem.cpp',
+]
+
+x11_dep = dependency('x11')
+
+vfbmon_exe = executable('vfbmon',
+  vfbmon_sources,
+  dependencies: x11_dep,
+  cpp_args: cpp_args,
+  include_directories: include_directories(inc_dirs),
+)

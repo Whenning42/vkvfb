@@ -1,0 +1,74 @@
+#!/bin/bash
+
+# Copyright (C) 2025 William Henning
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+if [ $# -eq 0 ]; then
+  echo "Usage: $0 <command> [args...]"
+  echo ""
+  echo "Runs the specified command with vkvfb layer environment variables set."
+  echo ""
+  echo "Example:"
+  echo "  $0 vkcube"
+  echo "  $0 my-vulkan-app --arg1 --arg2"
+  exit 1
+fi
+
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Navigate to the project root (one level up from tests/)
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+
+# Build directory path
+BUILD_DIR="$PROJECT_ROOT/build"
+
+# Check if build directory exists
+if [ ! -d "$BUILD_DIR" ]; then
+  echo "Error: Build directory not found at $BUILD_DIR"
+  echo "Please run 'meson setup build && meson compile -C build' first"
+  exit 1
+fi
+
+# Check if the layer library exists
+LAYER_LIB="$BUILD_DIR/VkLayer_Vkvfb.so"
+if [ ! -f "$LAYER_LIB" ]; then
+  echo "Error: Vkvfb layer library not found at $LAYER_LIB"
+  echo "Please run 'meson compile -C build' first"
+  exit 1
+fi
+
+# Check if the layer manifest exists
+LAYER_JSON="$BUILD_DIR/VkvfbLayer.json"
+if [ ! -f "$LAYER_JSON" ]; then
+  echo "Error: Vkvfb layer manifest not found at $LAYER_JSON"
+  echo "Please run 'meson compile -C build' first"
+  exit 1
+fi
+
+# Set environment variables for vkvfb layer
+export LD_LIBRARY_PATH="$BUILD_DIR${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+export VK_LAYER_PATH="$BUILD_DIR${VK_LAYER_PATH:+:$VK_LAYER_PATH}"
+export VK_INSTANCE_LAYERS="VK_LAYER_Vkvfb${VK_INSTANCE_LAYERS:+:$VK_INSTANCE_LAYERS}"
+
+echo "Running with vkvfb layer enabled:"
+echo "  LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
+echo "  VK_LAYER_PATH=$VK_LAYER_PATH"
+echo "  VK_INSTANCE_LAYERS=$VK_INSTANCE_LAYERS"
+echo ""
+echo "Command: $*"
+echo ""
+
+# Execute the command with all arguments
+exec "$@"
