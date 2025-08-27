@@ -10,6 +10,13 @@
     "functions": {
       "vkGetDeviceProcAddr": "CallbackSwapchainGetDeviceProcAddr",
       "vkGetInstanceProcAddr": "CallbackSwapchainGetInstanceProcAddr"
+    },
+    "enable_environment": {
+      "VKVFB": "1"
+    },
+    "disable_environment": {
+      "DISABLE_VKVFB": "1"
     }
+
   }
 }
