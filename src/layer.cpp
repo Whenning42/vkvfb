@@ -44,6 +44,21 @@
 #endif
 
 namespace swapchain {
+namespace {
+bool layer_disabled() {
+  bool enabled = false;
+  const char* enable_env = std::getenv("VKVFB");
+  const char* disable_env = std::getenv("VKVFB_DISABLE");
+
+  if (enable_env && std::string(enable_env) == "1") {
+    enabled = true;
+  }
+  if (disable_env && std::string(disable_env) == "1") {
+    enabled = false;
+  }
+  return !enabled;
+}
+}
 
 Context& GetGlobalContext() {
   // To avoid bad cleanup, we never free this :(
@@ -95,7 +110,11 @@ typename link_info_traits<T>::layer_info_type* get_layer_link_info(
 VKAPI_ATTR VkResult VKAPI_CALL vkCreateInstance(
     const VkInstanceCreateInfo* pCreateInfo,
     const VkAllocationCallbacks* pAllocator, VkInstance* pInstance) {
-  std::cout << "Vkvfb loaded." << std::endl;
+  if (!layer_disabled()) {
+    std::cout << "Vkvfb loaded." << std::endl;
+  } else {
+    std::cout << "Vkvfb disabled by env vars." << std::endl;
+  }
 
   VkLayerInstanceCreateInfo* layer_info = get_layer_link_info(pCreateInfo);
 
@@ -106,6 +125,8 @@ VKAPI_ATTR VkResult VKAPI_CALL vkCreateInstance(
   // From that get the next vkCreateInstance function.
   PFN_vkCreateInstance create_instance = reinterpret_cast<PFN_vkCreateInstance>(
       get_instance_proc_addr(NULL, "vkCreateInstance"));
+
+
 
   if (create_instance == NULL) {
     return VK_ERROR_INITIALIZATION_FAILED;
@@ -434,6 +455,12 @@ void vkFreeCommandBuffers(VkDevice device, VkCommandPool commandPool,
 // Lastly it provides vkDestroyInstance for book-keeping purposes.
 VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL
 vkGetInstanceProcAddr(VkInstance instance, const char* funcName) {
+  if (layer_disabled()) {
+    PFN_vkGetInstanceProcAddr instance_proc_addr =
+        GetGlobalContext().GetInstanceData(instance)->vkGetInstanceProcAddr;
+    return instance_proc_addr(instance, funcName);
+  }
+
 #define INTERCEPT(func)         \
   if (!strcmp(funcName, #func)) \
   return reinterpret_cast<PFN_vkVoidFunction>(func)
@@ -455,7 +482,9 @@ vkGetInstanceProcAddr(VkInstance instance, const char* funcName) {
 
   INTERCEPT(vkGetPhysicalDeviceSurfaceSupportKHR);
   INTERCEPT(vkGetPhysicalDeviceSurfaceFormatsKHR);
+  INTERCEPT(vkGetPhysicalDeviceSurfaceFormats2KHR);
   INTERCEPT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR);
+  INTERCEPT(vkGetPhysicalDeviceSurfaceCapabilities2KHR);
   INTERCEPT(vkGetPhysicalDeviceSurfacePresentModesKHR);
 
   // From here down it is just functions that have to be overriden for swapchain
@@ -491,6 +520,12 @@ vkGetInstanceProcAddr(VkInstance instance, const char* funcName) {
 // The rest of the overloads are swapchain-specific.
 VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL
 vkGetDeviceProcAddr(VkDevice dev, const char* funcName) {
+  if (layer_disabled()) {
+    PFN_vkGetDeviceProcAddr device_proc_addr =
+        GetGlobalContext().GetDeviceData(dev)->vkGetDeviceProcAddr;
+    return device_proc_addr(dev, funcName);
+  }
+
 #define INTERCEPT(func)         \
   if (!strcmp(funcName, #func)) \
   return reinterpret_cast<PFN_vkVoidFunction>(func)
