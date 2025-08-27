@@ -180,6 +180,9 @@ CallbackSwapchain::CallbackSwapchain(
 
     // Create the image
     {
+      // TODO(whenning): Should these functions all have their returns checked?
+      // An alternative to checking returns is to run the app over the validation
+      // layers, but that crashed the layers when I last tested it.
       functions_->vkCreateImage(device_, &image_create_info, pAllocator,
                                 &image_data.image_);
       // Create device-memory for the image
