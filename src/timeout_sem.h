@@ -26,6 +26,7 @@
 class MPMu {
  public:
   MPMu(const std::string& name, int oflag, int mode);
+  ~MPMu();
   void lock();
   void unlock();
 
@@ -39,6 +40,8 @@ class Semaphore {
  public:
   using gen = int64_t;
   Semaphore(const std::string& path, bool create, int32_t initial_value);
+  ~Semaphore();
+
   void post(gen g);
   // Pass in UINT64_MAX to wait indefintely.
   gen wait(uint64_t nanos);

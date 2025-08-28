@@ -21,12 +21,23 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <time.h>
+#include <stdio.h>
 
+#include "tinylog.h"
 
 MPMu::MPMu(const std::string& name, int oflag, int mode) {
   sem_ = sem_open(name.c_str(), oflag, mode, 1);
   if (sem_ == SEM_FAILED) {
     perror("MPMu sem_open failed");
+    exit(1);
+  }
+  LOGF("Opened mpmu sem: %p\n", sem_);
+}
+
+MPMu::~MPMu() {
+  LOGF("Closing mpmu sem: %p\n", sem_);
+  if (sem_close(sem_)) {
+    perror("Failed to close multiprocess-mutex's semaphore");
     exit(1);
   }
 }
@@ -49,6 +60,9 @@ Semaphore::Semaphore(const std::string& path, bool create, int32_t initial_value
   : sem_mu_(path + "_mu", create ? O_CREAT : 0, 0644), initial_value_(initial_value) {
   int oflag = 0;
   if (create) {
+    // We want semaphores to be exlcusive in the context of a single execution,
+    // but we don't have a way to clean them up between invocations, so we can't
+    // set O_EXCL here.
     oflag |= O_CREAT;
   }
   sem_ = sem_open(path.c_str(), oflag, 0644, initial_value);
@@ -70,6 +84,13 @@ void Semaphore::post(gen g) {
     exit(1);
   }
   sem_mu_.unlock();
+}
+
+Semaphore::~Semaphore() {
+  if (sem_close(sem_)) {
+    perror("Failed to close backing semaphore.");
+    exit(1);
+  }
 }
 
 Semaphore::gen Semaphore::wait(uint64_t nanos) {
@@ -107,6 +128,7 @@ Semaphore::gen Semaphore::wait(uint64_t nanos) {
 
 void Semaphore::advance_gen() {
   sem_mu_.lock();
+  LOGF("Timed semaphore timed out!.\n");
   generation_ += 1;
 
   // Get current semaphore value and post until we reach initial_value_

@@ -17,16 +17,16 @@
 #include "present_callback.h"
 
 void present_callback(void* user_data, uint8_t* pixels, size_t pixels_size) {
-  PresentData& present_data = *(PresentData*)user_data;
+  SwapchainData& swapchain_data = *(SwapchainData*)user_data;
   bool force_opaque = false;
-  if (present_data.composite_mode == VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR) {
+  if (swapchain_data.composite_mode == VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR) {
     force_opaque = true;
   }
 
-  present_data.writer.write_pixels(pixels, present_data.width, present_data.height, force_opaque=force_opaque);
+  swapchain_data.writer.write_pixels(pixels, swapchain_data.width, swapchain_data.height, force_opaque);
 }
 
 void cleanup_callback(void* user_data) {
-  PresentData* present_data = (PresentData*)user_data;
-  delete present_data;
+  SwapchainData* swapchain_data = (SwapchainData*)user_data;
+  delete swapchain_data;
 }

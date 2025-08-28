@@ -36,7 +36,8 @@ struct ShmPixbufData {
   ShmPixbufData(): pixels(&first_pixel) {}
 
   static size_t pixbuf_size(int32_t width, int32_t height) {
-    return width*height*4;
+    // Casting to size_t before multiplication protects against possible overflows at very high resolutions.
+    return (size_t)width * (size_t)height * 4;
   }
   static size_t pixbuf_struct_size(int32_t width, int32_t height) {
     return pixbuf_size(width, height) + offsetof(ShmPixbufData, first_pixel);

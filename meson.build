@@ -28,6 +28,8 @@ endif
 
 # Dependencies
 gtest_dep = dependency('gtest', main: true)
+x11_xcb_dep = dependency('x11-xcb')
+xcb_dep = dependency('xcb')
 
 # Source files
 sources = [
@@ -62,6 +64,7 @@ inc_dirs = ['src']
 # Build the shared library
 vklayer_lib = shared_library('VkLayer_Vkvfb',
   sources,
+  dependencies: [x11_xcb_dep, xcb_dep],
   cpp_args: cpp_args,
   include_directories: include_directories(inc_dirs),
   install: true,

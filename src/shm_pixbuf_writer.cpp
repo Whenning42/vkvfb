@@ -16,6 +16,7 @@
 
 #include "shm_pixbuf_writer.h"
 
+#include <cassert>
 #include <cstring>
 
 #include "shm_pixbuf_data.h"
@@ -28,12 +29,16 @@ void memcpy_pixels(void* dst, const void* src, size_t size, bool force_opaque) {
     return;
   }
 
+  // Check alignment for uint32_t operations
+  assert(((uintptr_t)src & 3) == 0 && "src must be 4-byte aligned");
+  assert(((uintptr_t)dst & 3) == 0 && "dst must be 4-byte aligned");
+
   // Memcpy clamping every 4th byte to 255.
   uint32_t* from = (uint32_t*)(src);
   uint32_t* to = (uint32_t*)(dst);
   uint32_t* end = (uint32_t*)(src) + size/4;
   while (from != end) {
-    *to = *from | 0xFF000000u;
+    *to = *from | 0xff000000u;
     from++;
     to++;
   }
@@ -43,7 +48,9 @@ void memcpy_pixels(void* dst, const void* src, size_t size, bool force_opaque) {
 
 ShmPixbufWriter::ShmPixbufWriter(const std::string& path) 
   : shm_(path, 'w'), sem_(path + "_sem", true, 1) {
+  current_generation_ = sem_.wait(200'000'000);
   data_ = new (shm_.map()) ShmPixbufData();
+  sem_.post(current_generation_);
 }
 
 void ShmPixbufWriter::write_pixels(const uint8_t* pixels, int32_t width, int32_t height, bool force_opaque) {

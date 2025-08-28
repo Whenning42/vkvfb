@@ -19,6 +19,7 @@
  */
 
 #include "callback_swapchain.h"
+
 #include <cassert>
 #include <chrono>
 #include <fstream>
@@ -26,7 +27,10 @@
 #include <iomanip>
 #include <iostream>
 #include <sstream>
+#include <stdio.h>
 #include <string>
+
+#include "tinylog.h"
 
 namespace {
 
@@ -282,18 +286,18 @@ void CallbackSwapchain::Destroy(const VkAllocationCallbacks* pAllocator) {
   pthread_join(thread_, nullptr);
 #endif
 
-  for (size_t i = 0; i < num_images_; ++i) {
-    functions_->vkFreeMemory(device_, image_data_[i].image_memory_, pAllocator);
-    functions_->vkDestroyImage(device_, image_data_[i].image_, pAllocator);
-    functions_->vkFreeMemory(device_, image_data_[i].buffer_memory_,
-                             pAllocator);
-    functions_->vkDestroyBuffer(device_, image_data_[i].buffer_, pAllocator);
-    functions_->vkDestroyFence(device_, image_data_[i].fence_, pAllocator);
-    functions_->vkFreeCommandBuffers(device_, command_pool_, 1,
-                                     &image_data_[i].command_buffer_);
-  }
+  // for (size_t i = 0; i < num_images_; ++i) {
+  //   functions_->vkFreeMemory(device_, image_data_[i].image_memory_, pAllocator);
+  //   functions_->vkDestroyImage(device_, image_data_[i].image_, pAllocator);
+  //   functions_->vkFreeMemory(device_, image_data_[i].buffer_memory_,
+  //                            pAllocator);
+  //   functions_->vkDestroyBuffer(device_, image_data_[i].buffer_, pAllocator);
+  //   functions_->vkDestroyFence(device_, image_data_[i].fence_, pAllocator);
+  //   functions_->vkFreeCommandBuffers(device_, command_pool_, 1,
+  //                                    &image_data_[i].command_buffer_);
+  // }
 
-  functions_->vkDestroyCommandPool(device_, command_pool_, pAllocator);
+  // functions_->vkDestroyCommandPool(device_, command_pool_, pAllocator);
 }
 
 void CallbackSwapchain::CopyThreadFunc() {
@@ -320,10 +324,12 @@ void CallbackSwapchain::CopyThreadFunc() {
       pending_images_.pop_front();
     }
 
+    LOGF("Presenting an image on swapchain: %p\n", this);
     VkResult ret = functions_->vkWaitForFences(
         device_, 1, &image_data_[pending_image].fence_, false, UINT64_MAX);
-    (void)ret;
+    LOGF("Wait for fences return value: %d\n", ret);
     functions_->vkResetFences(device_, 1, &image_data_[pending_image].fence_);
+    LOGF("Waited for fences\n");
 
     void* mapped_value;
     functions_->vkMapMemory(device_, image_data_[pending_image].buffer_memory_,
@@ -338,14 +344,23 @@ void CallbackSwapchain::CopyThreadFunc() {
     functions_->vkInvalidateMappedMemoryRanges(device_, 1, &range);
 
     uint32_t length = ImageByteSize();
-    { callback_(user_data_.get(), (uint8_t*)mapped_value, length); }
+    {
+      LOGF("Getting retire lock\n");
+      std::lock_guard<std::mutex> retire_lock = GetRetireLock();
+      LOGF("Got retire lock\n");
+      if (callback_) {
+        callback_(user_data_.get(), (uint8_t*)mapped_value, length);
+      }
+    }
     functions_->vkUnmapMemory(device_,
                               image_data_[pending_image].buffer_memory_);
     {
+      LOGF("Getting free images lock\n");
       std::unique_lock<threading::mutex> l(free_images_lock_);
       free_images_.push_back(pending_image);
     }
     free_images_condition_.notify_all();
+    LOGF("Finished presenting image\n");
   }
 }
 

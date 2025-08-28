@@ -43,16 +43,8 @@ class VfbMonitor {
     pixels_ = nullptr;
   }
   
-  ~VfbMonitor() {
-    cleanup();
-    if (display_) {
-      XCloseDisplay(display_);
-    }
-  }
-  
   void run() {
     printf("Starting VFB monitor for window ID: %s\n", window_id_.c_str());
-    
     const double frame_duration = 1.0 / 60.0; // 60 FPS in seconds
     
     while (true) {
@@ -61,7 +53,12 @@ class VfbMonitor {
       double frame_start_sec = frame_start.tv_sec + frame_start.tv_nsec / 1'000'000'000.0;
       
       update_frame();
-      handle_x11_events();
+
+      // Keep the event queue processed.
+      while (XPending(display_)) {
+        XEvent event;
+        XNextEvent(display_, &event);
+      }
       
       struct timespec frame_end;
       clock_gettime(CLOCK_MONOTONIC, &frame_end);
@@ -81,21 +78,6 @@ class VfbMonitor {
   }
 
  private:
-  void cleanup() {
-    if (image_) {
-      XDestroyImage(image_);
-      image_ = nullptr;
-    }
-    if (pixels_) {
-      delete[] pixels_;
-      pixels_ = nullptr;
-    }
-    if (window_ != None && display_) {
-      XDestroyWindow(display_, window_);
-      window_ = None;
-    }
-  }
-  
   void create_window(int width, int height) {
     if (window_ != None) {
       XDestroyWindow(display_, window_);
@@ -103,8 +85,8 @@ class VfbMonitor {
     
     XSetWindowAttributes attrs;
     attrs.background_pixel = BlackPixel(display_, screen_);
-    attrs.event_mask = ExposureMask;
-    
+    attrs.event_mask = 0;
+
     window_ = XCreateWindow(display_, root_window_,
                            100, 100, width, height, 0,
                            DefaultDepth(display_, screen_),
@@ -116,10 +98,8 @@ class VfbMonitor {
     char title[256];
     snprintf(title, sizeof(title), "VFB Monitor - %s", window_id_.c_str());
     XStoreName(display_, window_, title);
-    
     XMapWindow(display_, window_);
     XFlush(display_);
-    
     gc_ = XCreateGC(display_, window_, 0, nullptr);
     
     printf("Created X11 window %dx%d\n", width, height);
@@ -135,7 +115,6 @@ class VfbMonitor {
   
   bool update_frame() {
     reader_.acquire();
-    
     int32_t width = reader_.get_width();
     int32_t height = reader_.get_height();
     int32_t pixels_size = reader_.get_pixels_size();
@@ -155,7 +134,7 @@ class VfbMonitor {
       pixels_ = new uint8_t[pixels_size];
       
       if (image_) {
-        XDestroyImage(image_);
+        free(image_);
       }
       
       if (window_ == None) {
@@ -170,7 +149,6 @@ class VfbMonitor {
                            ZPixmap, 0,
                            reinterpret_cast<char*>(pixels_),
                            width, height, 32, width * 4);
-      
       if (!image_) {
         reader_.release();
         printf("Failed to create XImage\n");
@@ -180,11 +158,8 @@ class VfbMonitor {
       image_->byte_order = LSBFirst;
       image_->bitmap_bit_order = LSBFirst;
     }
-    
     reader_.read_pixels(pixels_);
     reader_.release();
-    
-    convert_bgra_to_rgba(pixels_, width * height);
     
     if (window_ != None && image_) {
       XPutImage(display_, window_, gc_, image_, 0, 0, 0, 0, width, height);
@@ -198,22 +173,6 @@ class VfbMonitor {
     for (int i = 0; i < pixel_count; ++i) {
       uint8_t* pixel = &pixels[i * 4];
       std::swap(pixel[0], pixel[2]);
-    }
-  }
-  
-  void handle_x11_events() {
-    while (XPending(display_)) {
-      XEvent event;
-      XNextEvent(display_, &event);
-      
-      switch (event.type) {
-        case Expose:
-          if (image_ && current_width_ > 0 && current_height_ > 0) {
-            XPutImage(display_, window_, gc_, image_, 0, 0, 0, 0, 
-                    current_width_, current_height_);
-          }
-          break;
-      }
     }
   }
   
@@ -245,7 +204,6 @@ int main(int argc, char* argv[]) {
   }
   
   std::string window_id = argv[1];
-  
   VfbMonitor monitor(window_id);
   monitor.run();
   

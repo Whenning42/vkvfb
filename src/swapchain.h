@@ -34,7 +34,8 @@ namespace swapchain {
 
 struct CallbackSurface {
   std::string window_name;
-  CallbackSurface(const std::string& window_name): window_name(window_name) {}
+  xcb_window_t window;
+  xcb_connection_t* connection;
 };
 
 // RegisterInstance set up all of the swapchain related physical
@@ -62,9 +63,19 @@ VKAPI_ATTR VkResult VKAPI_CALL vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
     VkPhysicalDevice physicalDevice, VkSurfaceKHR surface,
     VkSurfaceCapabilitiesKHR *pSurfaceCapabilities);
 
+VKAPI_ATTR VkResult VKAPI_CALL vkGetPhysicalDeviceSurfaceCapabilities2KHR(
+    VkPhysicalDevice physicalDevice,
+    const VkPhysicalDeviceSurfaceInfo2KHR *pSurfaceInfo,
+    VkSurfaceCapabilities2KHR *pSurfaceCapabilities);
+
 VKAPI_ATTR VkResult VKAPI_CALL vkGetPhysicalDeviceSurfaceFormatsKHR(
     VkPhysicalDevice physicalDevice, VkSurfaceKHR surface,
     uint32_t *pSurfaceFormatCount, VkSurfaceFormatKHR *pSurfaceFormats);
+
+VKAPI_ATTR VkResult VKAPI_CALL vkGetPhysicalDeviceSurfaceFormats2KHR(
+    VkPhysicalDevice physicalDevice,
+    const VkPhysicalDeviceSurfaceInfo2KHR *pSurfaceInfo,
+    uint32_t *pSurfaceFormatCount, VkSurfaceFormat2KHR *pSurfaceFormats);
 
 VKAPI_ATTR VkResult VKAPI_CALL vkGetPhysicalDeviceSurfacePresentModesKHR(
     VkPhysicalDevice physicalDevice, VkSurfaceKHR surface,

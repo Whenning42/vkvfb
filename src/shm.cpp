@@ -15,7 +15,6 @@
  */
 
 #include "shm.h"
-#include "shm_pixbuf_data.h"
 
 #include <sys/mman.h>
 #include <sys/stat.h>
@@ -23,6 +22,18 @@
 #include <unistd.h>
 #include <cstdio>
 #include <cstdlib>
+
+#include "shm_pixbuf_data.h"
+#include "tinylog.h"
+
+namespace {
+
+size_t round_to_page(size_t size) {
+  size_t ps = getpagesize();
+  return ps * ((size + ps - 1) / ps);
+}
+
+}
 
 Shm::Shm(const std::string& path, char mode) : mode_(mode) {
   int flags = O_RDWR;
@@ -55,9 +66,11 @@ Shm::Shm(const std::string& path, char mode) : mode_(mode) {
 }
 
 void Shm::resize(size_t new_size) {
+  new_size = round_to_page(new_size);
   if (new_size == size_) {
     return;
   }
+  LOGF("Resizing shm with mode '%c' old size: %zu, new size: %zu\n", mode_, size_, new_size);
   
   if (mode_ == 'w') {
     if (ftruncate(shm_fd_, new_size) == -1) {

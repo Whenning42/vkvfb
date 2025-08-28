@@ -26,13 +26,13 @@
 
 
 // Struct to store and pass to present callback.
-struct PresentData {
+struct SwapchainData {
   int32_t width;
   int32_t height;
   ShmPixbufWriter writer;
   VkCompositeAlphaFlagBitsKHR composite_mode;
 
-  PresentData(int32_t w, int32_t h, const std::string& window_name, VkCompositeAlphaFlagBitsKHR mode)
+  SwapchainData(int32_t w, int32_t h, const std::string& window_name, VkCompositeAlphaFlagBitsKHR mode)
     : width(w), height(h), writer(window_name), composite_mode(mode) {}
 };
 

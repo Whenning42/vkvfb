@@ -14,10 +14,11 @@
  * limitations under the License.
  */
 
-#include "shm_pixbuf_reader.h"
 #include <cstdio>
 #include <cstdlib>
 #include <string>
+
+#include "shm_pixbuf_reader.h"
 
 int main(int argc, char* argv[]) {
     if (argc != 2) {

@@ -108,6 +108,15 @@ class CallbackSwapchain {
     always_get_acquired_image_ = always_get_acquired_image;
   }
 
+  void ClearCallbackAndData() {
+    callback_ = nullptr;
+    user_data_ = generic_unique_ptr();
+  }
+
+  std::lock_guard<std::mutex> GetRetireLock() {
+    return std::lock_guard<std::mutex>(retire_mu_);
+  }
+
  private:
   const VkSwapchainCreateInfoKHR swapchain_info_;
 
@@ -161,6 +170,8 @@ class CallbackSwapchain {
   threading::mutex pending_images_lock_;  
   threading::condition_variable free_images_condition_;
   threading::mutex free_images_lock_;
+
+  std::mutex retire_mu_;
 
   void (*callback_)(void*, uint8_t*, size_t);
   generic_unique_ptr user_data_;
