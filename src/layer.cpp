@@ -12,6 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ * 
+ * 
+ * Modifications copyright (C) 2025 William Henning
+ * Changes: See header.
  */
 
 #include <vulkan/vk_layer.h>
@@ -30,7 +34,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "tinylog.h"
+#include "logger.h"
 #include "swapchain.h"
 
 #define LAYER_NAME "CallbackSwapchain"
@@ -200,7 +204,7 @@ vkCreateDevice(VkPhysicalDevice gpu, const VkDeviceCreateInfo* pCreateInfo,
 
   if (pCreateInfo->ppEnabledExtensionNames) {
     for (int i = 0; i < pCreateInfo->enabledExtensionCount; ++i) {
-      LOGF(kLogLayer, "Vkvfb running w/ enabled extension: %s\n", pCreateInfo->ppEnabledExtensionNames[i]);
+      LOG(kLogLayer, "Vkvfb running w/ enabled extension: %s\n", pCreateInfo->ppEnabledExtensionNames[i]);
     }
   }
 
@@ -306,11 +310,11 @@ vkCreateDevice(VkPhysicalDevice gpu, const VkDeviceCreateInfo* pCreateInfo,
   }
 
   {
-    auto swp_map = GetGlobalContext().GetSwapchainImageMap();
-    (*swp_map)[*pDevice] = {};
+    auto swp_map = GetGlobalContext.SwapchainImagesMap();
+    swp_map[*pDevice] = {};
   }
 
-  LOGF(kLogLayer, "Created device: %p\n", *pDevice);
+  LOG(kLogLayer, "Created device: %p\n", *pDevice);
   return result;
 }
 
@@ -408,14 +412,10 @@ VKAPI_ATTR VkResult VKAPI_CALL vkAllocateCommandBuffers(
   auto command_buffer_map = GetGlobalContext().GetCommandBufferMap();
   const auto device_data = GetGlobalContext().GetDeviceData(device);
 
-  LOGF(kLogLayer, "Layer vkAllocateCommandBuffers device: %p\n", device);
-  LOGF(kLogLayer, "Layer vkAllocateCommandBuffers pfn: %p\n", device_data->vkAllocateCommandBuffers);
   VkResult res = device_data->vkAllocateCommandBuffers(device, pAllocateInfo,
                                                        pCommandBuffers);
-  LOGF(kLogLayer, "Allocated command buffers\n");
   if (res == VK_SUCCESS) {
     for (size_t i = 0; i < pAllocateInfo->commandBufferCount; ++i) {
-      LOGF(kLogLayer, "  buffer: %p\n", pCommandBuffers[i]);
       (*command_buffer_map)[pCommandBuffers[i]] = {
           device, device_data->vkCmdPipelineBarrier,
           device_data->vkCmdWaitEvents};
@@ -455,14 +455,8 @@ VKAPI_ATTR VkResult VKAPI_CALL vkCreateImageView(VkDevice device,
                                                  const VkImageViewCreateInfo* pCreateInfo,
                                                  const VkAllocationCallbacks* pAllocator,
                                                  VkImageView* pView) {
-  LOGF(kLogLayer, "vkCreateImageView: image=%p, baseMipLevel=%u, levelCount=%u\n",
-         (void*)pCreateInfo->image,
-         pCreateInfo->subresourceRange.baseMipLevel,
-         pCreateInfo->subresourceRange.levelCount);
-
-  // Override base_mip_level to 0 for swapchain images.
-  // This is a workaround for factorio passing in baseMipLevel = 1 for some swapchain
-  // image views.
+  // Override base_mip_level to 0 for swapchain images as a workaround for factorio
+  // passing in baseMipLevel = 1 for some swapchain image views.
   VkImageViewCreateInfo info = *pCreateInfo;
 
   VkImage image = pCreateInfo->image;
@@ -470,7 +464,7 @@ VKAPI_ATTR VkResult VKAPI_CALL vkCreateImageView(VkDevice device,
   if (std::find(swp_images.begin(), swp_images.end(), image) != swp_images.end()) {
     uint32_t& base_mip_level = info.subresourceRange.baseMipLevel;
     if (base_mip_level == 1) {
-      LOGF(kLogLayer, "Overriding image basemiplevel to 0.\n");
+      LOG(kLogLayer, "Overriding image basemiplevel to 0.\n");
       base_mip_level = 0;
     }
   }

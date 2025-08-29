@@ -15,7 +15,10 @@
  *
  *
  * Modifications copyright (C) 2025 William Henning
- * Changes: Switch user_data from void* to generic unique ptr.
+ * Changes:
+ *  - Store user data in a unique_ptr
+ *  - Track swapchain images
+ *  - Fix missin dispatch table in internal allocated cmd buffer
  */
 
 #ifndef VK_CALLBACK_SWAPCHAIN_CALLBACK_SWAPCHAIN_H_
@@ -30,6 +33,7 @@
 
 #include "generic_unique_ptr.h"
 #include "layer.h"
+
 
 namespace swapchain {
 

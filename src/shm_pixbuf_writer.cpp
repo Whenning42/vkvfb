@@ -49,11 +49,9 @@ void memcpy_pixels(void* dst, const void* src, size_t size, bool force_opaque) {
 ShmPixbufWriter::ShmPixbufWriter(const std::string& path):
   sem_(path + "_sem", /*create=*/true, /*initial_value=*/1) {
   current_generation_ = sem_.wait(2'000'000'000);
-  // LOGF("Acquired write create sem: %s\n", sem_.name().c_str());
   shm_ = Shm(path, 'w');
   data_ = new (shm_.map()) ShmPixbufData();
   sem_.post(current_generation_);
-  // LOGF("Released write create sem: %s\n", sem_.name().c_str());
 }
 
 void ShmPixbufWriter::write_pixels(const uint8_t* pixels, int32_t width, int32_t height, bool force_opaque) {

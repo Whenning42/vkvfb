@@ -15,7 +15,7 @@
  *
  *
  * Modifications copyright (C) 2025 William Henning
- * Changes: Switch user_data from void* to generic unique ptr.
+ * Changes: See header.
  */
 
 #include "callback_swapchain.h"
@@ -30,7 +30,6 @@
 #include <stdio.h>
 #include <string>
 
-#include "tinylog.h"
 
 namespace {
 
@@ -151,84 +150,67 @@ CallbackSwapchain::CallbackSwapchain(
     // Create the command buffer
     VkResult res = functions_->vkAllocateCommandBuffers(device_, &command_buffer_info,
                                          &image_data.command_buffer_);
-
-    // Did this fix the bug?
     set_dispatch_table(device_, image_data.command_buffer_);
-    if(res == VK_SUCCESS) {
-      LOGF(kLogLayer, "Allocated swapchain cb: %p\n", image_data.command_buffer_);
-    } else {
-      LOGF(kLogLayer, "Failed to allocate command buffer. Error: %d\n", res);
-    }
 
     // Create the fence
-    {
-      functions_->vkCreateFence(device_, &fence_info, pAllocator,
-                                &image_data.fence_);
-      functions_->vkResetFences(device_, 1, &image_data.fence_);
-    }
+    functions_->vkCreateFence(device_, &fence_info, pAllocator,
+                              &image_data.fence_);
+    functions_->vkResetFences(device_, 1, &image_data.fence_);
 
     // Create the buffer
     {
       functions_->vkCreateBuffer(device_, &buffer_create_info, pAllocator,
                                  &image_data.buffer_);
-      // Create device-memory for the buffer
-      {
-        VkMemoryRequirements reqs;
-        functions_->vkGetBufferMemoryRequirements(device_, image_data.buffer_,
-                                                  &reqs);
 
-        uint32_t memory_type =
-            FindMemoryType(&properties, reqs.memoryTypeBits,
-                           VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
-        VkMemoryAllocateInfo buffer_memory_info{
-            VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,  // sType
-            nullptr,                                 // pNext
-            reqs.size,                               // allocationSize
-            memory_type                              // memoryTypeIndex
-        };
+      VkMemoryRequirements reqs;
+      functions_->vkGetBufferMemoryRequirements(device_, image_data.buffer_,
+                                                &reqs);
 
-        functions_->vkAllocateMemory(device_, &buffer_memory_info, pAllocator,
-                                     &image_data.buffer_memory_);
-        functions_->vkBindBufferMemory(device_, image_data.buffer_,
-                                       image_data.buffer_memory_, 0);
-      }
+      uint32_t memory_type =
+          FindMemoryType(&properties, reqs.memoryTypeBits,
+                          VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
+      VkMemoryAllocateInfo buffer_memory_info{
+          VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,  // sType
+          nullptr,                                 // pNext
+          reqs.size,                               // allocationSize
+          memory_type                              // memoryTypeIndex
+      };
+
+      functions_->vkAllocateMemory(device_, &buffer_memory_info, pAllocator,
+                                    &image_data.buffer_memory_);
+      functions_->vkBindBufferMemory(device_, image_data.buffer_,
+                                      image_data.buffer_memory_, 0);
     }
 
     // Create the image
     {
-      // TODO(whenning): Should these functions all have their returns checked?
-      // An alternative to checking returns is to run the app over the validation
-      // layers, but that crashed the layers when I last tested it.
-      
       functions_->vkCreateImage(device_, &image_create_info, pAllocator,
                                 &image_data.image_);
-      LOGF(kLogLayer, "Created image: %p\n", image_data.image_);
       {
         auto swp_images = GetGlobalContext().SwapchainImages(device_);
         swp_images->push_back(image_data.image_);
       }
-      // Create device-memory for the image
-      {
-        VkMemoryRequirements reqs;
-        functions_->vkGetImageMemoryRequirements(device_, image_data.image_,
-                                                 &reqs);
-        uint32_t memory_type =
-            FindMemoryType(&properties, reqs.memoryTypeBits, 0);
 
-        VkMemoryAllocateInfo image_memory_info{
-            VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,  // sType
-            nullptr,                                 // pNext
-            reqs.size,                               // allocationSize
-            memory_type                              // memoryTypeIndex
-        };
+      VkMemoryRequirements reqs;
+      functions_->vkGetImageMemoryRequirements(device_, image_data.image_,
+                                                &reqs);
+      uint32_t memory_type =
+          FindMemoryType(&properties, reqs.memoryTypeBits, 0);
 
-        functions_->vkAllocateMemory(device_, &image_memory_info, pAllocator,
-                                     &image_data.image_memory_);
-        functions_->vkBindImageMemory(device_, image_data.image_,
-                                      image_data.image_memory_, 0);
-      }
+      VkMemoryAllocateInfo image_memory_info{
+          VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,  // sType
+          nullptr,                                 // pNext
+          reqs.size,                               // allocationSize
+          memory_type                              // memoryTypeIndex
+      };
+
+      functions_->vkAllocateMemory(device_, &image_memory_info, pAllocator,
+                                    &image_data.image_memory_);
+      functions_->vkBindImageMemory(device_, image_data.image_,
+                                    image_data.image_memory_, 0);
     }
 
+    // Record the copy command buffer.
     VkBufferMemoryBarrier dest_barrier{
         VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,  // sType
         nullptr,                                  // pNext
@@ -260,7 +242,6 @@ CallbackSwapchain::CallbackSwapchain(
         nullptr                                       // pInheritanceInfo
     };
 
-    LOGF(kLogLayer, "vkBeginCommandBuffer for device: %d\n", device_);
     functions_->vkBeginCommandBuffer(image_data.command_buffer_, &cbegin);
     functions_->vkCmdCopyImageToBuffer(
         image_data.command_buffer_, image_data.image_,

@@ -56,6 +56,7 @@ headers = [
   'src/shm_pixbuf_reader.h',
   'src/shm_pixbuf_writer.h',
   'src/timeout_sem.h',
+  'src/logger.h',
 ]
 
 # Include directories

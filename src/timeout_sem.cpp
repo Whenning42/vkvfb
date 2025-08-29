@@ -23,7 +23,6 @@
 #include <time.h>
 #include <stdio.h>
 
-#include "tinylog.h"
 
 MPMu::MPMu(const std::string& name, int oflag, int mode) {
   sem_ = sem_open(name.c_str(), oflag, mode, 1);
@@ -31,11 +30,9 @@ MPMu::MPMu(const std::string& name, int oflag, int mode) {
     perror("MPMu sem_open failed");
     exit(1);
   }
-  LOGF(kLogSync, "Opened mpmu sem: %p\n", sem_);
 }
 
 MPMu::~MPMu() {
-  LOGF(kLogSync, "Closing mpmu sem: %p\n", sem_);
   if (sem_close(sem_)) {
     perror("Failed to close multiprocess-mutex's semaphore");
     exit(1);
@@ -128,7 +125,6 @@ Semaphore::gen Semaphore::wait(uint64_t nanos) {
 
 void Semaphore::advance_gen() {
   sem_mu_.lock();
-  LOGF(kLogSync, "Timed semaphore timed out!.\n");
   generation_ += 1;
 
   // Get current semaphore value and post until we reach initial_value_

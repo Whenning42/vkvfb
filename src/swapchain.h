@@ -12,10 +12,13 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- */
-/*
+ * 
+ *
  * Modifications copyright (C) 2025 William Henning
- * Changes: Add virtual framebuffer implementation. Drop non-X wsi's.
+ * Changes:
+ *  - Add virtual framebuffer implementation
+ *  - Drop non-X wsi's.
+ *  - Override mip levels on swapchain create images
  */
 
 #ifndef VK_CALLBACK_SWAPCHAIN_SWAPCHAIN_H_
@@ -31,6 +34,7 @@
 #include <vulkan/vulkan_xcb.h>
 
 #include "layer.h"
+
 
 namespace swapchain {
 

@@ -12,10 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- */
-/*
+ *
  * Modifications copyright (C) 2025 William Henning
- * Changes: Add virtual framebuffer implementation. Drop non-X wsi's.
+ * Changes: See header.
  */
 
 #include "swapchain.h"
@@ -34,27 +33,11 @@
 #include <algorithm>
 
 #include "callback_swapchain.h"
+#include "logger.h"
 #include "present_callback.h"
-#include "tinylog.h"
+
 
 namespace swapchain {
-namespace {
-
-// VkExtent2D get_surface_extent(const CallbackSurface& surface) {
-//   // Query xcb to get the window's renderable size.
-//   // Return that size.
-//   xcb_get_geometry_reply_t* g =
-//           xcb_get_geometry_reply(surface.connection,
-//                                 xcb_get_geometry(surface.connection, surface.window),
-//                                 NULL);
-//   VkExtent2D extent;
-//   extent.width = g->width;
-//   extent.height = g->height;
-//   free(g);
-//   return extent;
-// }
-
-}
 
 void RegisterInstance(VkInstance instance, InstanceData& data) {
   uint32_t num_devices = 0;
@@ -266,7 +249,7 @@ VKAPI_ATTR VkResult VKAPI_CALL vkGetPhysicalDeviceSurfacePresentModesKHR(
 VKAPI_ATTR VkResult VKAPI_CALL vkCreateSwapchainKHR(
     VkDevice device, const VkSwapchainCreateInfoKHR* pCreateInfo,
     const VkAllocationCallbacks* pAllocator, VkSwapchainKHR* pSwapchain) {
-  LOGF(kLogLayer, "Creating swapchain with dimensions: %dx%d\n",
+  LOG(kLogLayer, "Creating swapchain with dimensions: %dx%d",
     pCreateInfo->imageExtent.width,
     pCreateInfo->imageExtent.height);
 
@@ -274,7 +257,7 @@ VKAPI_ATTR VkResult VKAPI_CALL vkCreateSwapchainKHR(
     CallbackSwapchain& old_swapchain = *reinterpret_cast<CallbackSwapchain*>(pCreateInfo->oldSwapchain);
     std::lock_guard<std::mutex> lock = old_swapchain.GetRetireLock();
     old_swapchain.ClearCallbackAndData();
-    LOGF(kLogLayer, "Retiring swapchain: %p\n", &old_swapchain);
+    LOG(kLogLayer, "Retiring swapchain: %p", &old_swapchain);
   }
 
   DeviceData& dev_dat = *GetGlobalContext().GetDeviceData(device);
