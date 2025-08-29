@@ -31,11 +31,11 @@ MPMu::MPMu(const std::string& name, int oflag, int mode) {
     perror("MPMu sem_open failed");
     exit(1);
   }
-  LOGF("Opened mpmu sem: %p\n", sem_);
+  LOGF(kLogSync, "Opened mpmu sem: %p\n", sem_);
 }
 
 MPMu::~MPMu() {
-  LOGF("Closing mpmu sem: %p\n", sem_);
+  LOGF(kLogSync, "Closing mpmu sem: %p\n", sem_);
   if (sem_close(sem_)) {
     perror("Failed to close multiprocess-mutex's semaphore");
     exit(1);
@@ -57,7 +57,7 @@ void MPMu::unlock() {
 }
 
 Semaphore::Semaphore(const std::string& path, bool create, int32_t initial_value) 
-  : sem_mu_(path + "_mu", create ? O_CREAT : 0, 0644), initial_value_(initial_value) {
+  : sem_mu_(path + "_mu", create ? O_CREAT : 0, 0644), initial_value_(initial_value), name_(path) {
   int oflag = 0;
   if (create) {
     // We want semaphores to be exlcusive in the context of a single execution,
@@ -108,11 +108,11 @@ Semaphore::gen Semaphore::wait(uint64_t nanos) {
       exit(1);
     }
     
-    abs_timeout.tv_sec += nanos / 1000000000;
-    abs_timeout.tv_nsec += nanos % 1000000000;
-    if (abs_timeout.tv_nsec >= 1000000000) {
+    abs_timeout.tv_sec += nanos / 1'000'000'000;
+    abs_timeout.tv_nsec += nanos % 1'000'000'000;
+    if (abs_timeout.tv_nsec >= 1'000'000'000) {
       abs_timeout.tv_sec += 1;
-      abs_timeout.tv_nsec -= 1000000000;
+      abs_timeout.tv_nsec -= 1'000'000'000;
     }
     
     int ret = sem_timedwait(sem_, &abs_timeout);
@@ -128,7 +128,7 @@ Semaphore::gen Semaphore::wait(uint64_t nanos) {
 
 void Semaphore::advance_gen() {
   sem_mu_.lock();
-  LOGF("Timed semaphore timed out!.\n");
+  LOGF(kLogSync, "Timed semaphore timed out!.\n");
   generation_ += 1;
 
   // Get current semaphore value and post until we reach initial_value_

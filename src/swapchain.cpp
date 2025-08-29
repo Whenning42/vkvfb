@@ -30,6 +30,8 @@
 #include <X11/Xlib.h>
 #include <X11/Xlib-xcb.h>
 #include <xcb/xcb.h>
+#include <unordered_set>
+#include <algorithm>
 
 #include "callback_swapchain.h"
 #include "present_callback.h"
@@ -38,19 +40,19 @@
 namespace swapchain {
 namespace {
 
-VkExtent2D get_surface_extent(const CallbackSurface& surface) {
-  // Query xcb to get the window's renderable size.
-  // Return that size.
-  xcb_get_geometry_reply_t* g =
-          xcb_get_geometry_reply(surface.connection,
-                                xcb_get_geometry(surface.connection, surface.window),
-                                NULL);
-  VkExtent2D extent;
-  extent.width = g->width;
-  extent.height = g->height;
-  free(g);
-  return extent;
-}
+// VkExtent2D get_surface_extent(const CallbackSurface& surface) {
+//   // Query xcb to get the window's renderable size.
+//   // Return that size.
+//   xcb_get_geometry_reply_t* g =
+//           xcb_get_geometry_reply(surface.connection,
+//                                 xcb_get_geometry(surface.connection, surface.window),
+//                                 NULL);
+//   VkExtent2D extent;
+//   extent.width = g->width;
+//   extent.height = g->height;
+//   free(g);
+//   return extent;
+// }
 
 }
 
@@ -97,29 +99,36 @@ VKAPI_ATTR VkResult VKAPI_CALL vkCreateXcbSurfaceKHR(
 VKAPI_ATTR VkResult VKAPI_CALL CreateSurface(
     VkInstance instance, const void* pCreateInfo, VkStructureType createType,
     const VkAllocationCallbacks* pAllocator, VkSurfaceKHR* pSurface) {
+  const auto instance_dat = *GetGlobalContext().GetInstanceData(instance);
+
   std::string window_name;
   xcb_window_t window;
   xcb_connection_t* connection;
+  VkSurfaceKHR backing_surface;
 
   if (createType == VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR) {
     const VkXlibSurfaceCreateInfoKHR& info = *(VkXlibSurfaceCreateInfoKHR*)pCreateInfo;
     window = (xcb_window_t)info.window;
     connection = XGetXCBConnection(info.dpy);
+    instance_dat.vkCreateXlibSurfaceKHR(instance, (VkXlibSurfaceCreateInfoKHR*)pCreateInfo, pAllocator, &backing_surface);
   }
   if (createType == VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR) {
     const VkXcbSurfaceCreateInfoKHR& info = *(VkXcbSurfaceCreateInfoKHR*)pCreateInfo;
     window = info.window;
     connection = info.connection;
+    instance_dat.vkCreateXcbSurfaceKHR(instance, (VkXcbSurfaceCreateInfoKHR*)pCreateInfo, pAllocator, &backing_surface);
   }
 
   std::ostringstream oss;
   oss << "0x" << std::hex << std::setw(8) << std::setfill('0') << static_cast<std::uint32_t>(window);
   window_name = oss.str();
 
+
   *pSurface = reinterpret_cast<VkSurfaceKHR>(
           new CallbackSurface{.window_name=window_name,
                               .window=window,
-                              .connection=connection});
+                              .connection=connection,
+                              .backing_surface=backing_surface});
   return VK_SUCCESS;
 }
 
@@ -156,6 +165,9 @@ VKAPI_ATTR VkResult VKAPI_CALL vkGetPhysicalDeviceSurfaceSupportKHR(
 VKAPI_ATTR VkResult VKAPI_CALL vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
     VkPhysicalDevice physicalDevice, VkSurfaceKHR surface,
     VkSurfaceCapabilitiesKHR* pSurfaceCapabilities) {
+  const auto instance_dat = *GetGlobalContext().GetInstanceData(
+      GetGlobalContext().GetPhysicalDeviceData(physicalDevice)->instance_);
+
   // It would be illegal for the program to call VkDestroyInstance here.
   // We do not need to lock the map for the whole time, just
   // long enough to get the data out. unordered_map guarantees that
@@ -165,14 +177,16 @@ VKAPI_ATTR VkResult VKAPI_CALL vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
           .GetPhysicalDeviceData(physicalDevice)
           ->physical_device_properties_;
   CallbackSurface& callback_surface = *reinterpret_cast<CallbackSurface*>(surface);
+  VkSurfaceKHR backing_surface = callback_surface.backing_surface;
+  VkSurfaceCapabilitiesKHR real_cap;
+  instance_dat.vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, backing_surface, &real_cap);
+
 
   pSurfaceCapabilities->minImageCount = 1;
   pSurfaceCapabilities->maxImageCount = 0;
-  pSurfaceCapabilities->currentExtent = get_surface_extent(callback_surface);
-  pSurfaceCapabilities->minImageExtent = {1, 1};
-  pSurfaceCapabilities->maxImageExtent = {
-      properties.limits.maxImageDimension2D,
-      properties.limits.maxImageDimension2D};
+  pSurfaceCapabilities->currentExtent = real_cap.currentExtent;
+  pSurfaceCapabilities->minImageExtent = real_cap.minImageExtent;
+  pSurfaceCapabilities->maxImageExtent = real_cap.maxImageExtent;
   pSurfaceCapabilities->maxImageArrayLayers =
       properties.limits.maxImageArrayLayers;
   pSurfaceCapabilities->supportedTransforms =
@@ -252,17 +266,16 @@ VKAPI_ATTR VkResult VKAPI_CALL vkGetPhysicalDeviceSurfacePresentModesKHR(
 VKAPI_ATTR VkResult VKAPI_CALL vkCreateSwapchainKHR(
     VkDevice device, const VkSwapchainCreateInfoKHR* pCreateInfo,
     const VkAllocationCallbacks* pAllocator, VkSwapchainKHR* pSwapchain) {
-  std::cout << "Creating swapchain with dimensions: " <<
-    pCreateInfo->imageExtent.width << "x" <<
-    pCreateInfo->imageExtent.height << std::endl;
+  LOGF(kLogLayer, "Creating swapchain with dimensions: %dx%d\n",
+    pCreateInfo->imageExtent.width,
+    pCreateInfo->imageExtent.height);
 
-  // if (pCreateInfo->oldSwapchain != VK_NULL_HANDLE) {
-  //   CallbackSwapchain& old_swapchain = *reinterpret_cast<CallbackSwapchain*>(pCreateInfo->oldSwapchain);
-  //   std::lock_guard<std::mutex> lock = old_swapchain.GetRetireLock();
-  //   std::cout << "Retiring swapchain: " << &old_swapchain << std::endl;
-  //   old_swapchain.ClearCallbackAndData();
-  // }
-
+  if (pCreateInfo->oldSwapchain != VK_NULL_HANDLE) {
+    CallbackSwapchain& old_swapchain = *reinterpret_cast<CallbackSwapchain*>(pCreateInfo->oldSwapchain);
+    std::lock_guard<std::mutex> lock = old_swapchain.GetRetireLock();
+    old_swapchain.ClearCallbackAndData();
+    LOGF(kLogLayer, "Retiring swapchain: %p\n", &old_swapchain);
+  }
 
   DeviceData& dev_dat = *GetGlobalContext().GetDeviceData(device);
   PhysicalDeviceData& pdd =
@@ -296,7 +309,6 @@ VKAPI_ATTR VkResult VKAPI_CALL vkCreateSwapchainKHR(
   const VkCompositeAlphaFlagBitsKHR composite_mode = pCreateInfo->compositeAlpha;
   generic_unique_ptr present_data =
       make_generic_unique(new SwapchainData(w, h, surface.window_name, composite_mode));
-  std::cout << "Created swapchain: " << swapchain << std::endl;
   swapchain->SetCallback(present_callback, std::move(present_data));
 
   return VK_SUCCESS;
@@ -305,12 +317,18 @@ VKAPI_ATTR VkResult VKAPI_CALL vkCreateSwapchainKHR(
 VKAPI_ATTR void VKAPI_CALL
 vkDestroySwapchainKHR(VkDevice device, VkSwapchainKHR swapchain,
                       const VkAllocationCallbacks* pAllocator) {
-  // Note: Not destrying swapchain didn't fix factorio lost device on resize
-  // and intel graphics.
-
   CallbackSwapchain* swp = reinterpret_cast<CallbackSwapchain*>(swapchain);
+
+  std::vector<VkImage> swp_images = swp->AllImages();
+  std::vector<VkImage>& all_swp_images = *GetGlobalContext().SwapchainImages(device);
+  std::unordered_set<VkImage> to_remove(swp_images.begin(), swp_images.end());
+  all_swp_images.erase(
+    std::remove_if(all_swp_images.begin(), all_swp_images.end(), [&](VkImage img) {
+      return to_remove.count(img) > 0;
+    }), all_swp_images.end());
+
   swp->Destroy(pAllocator);
-  // delete swp;
+  delete swp;
 }
 
 VKAPI_ATTR void VKAPI_CALL
@@ -352,7 +370,6 @@ VKAPI_ATTR VkResult VKAPI_CALL vkGetSwapchainImagesKHR(
 VKAPI_ATTR VkResult VKAPI_CALL vkAcquireNextImageKHR(
     VkDevice device, VkSwapchainKHR swapchain, uint64_t timeout,
     VkSemaphore semaphore, VkFence fence, uint32_t* pImageIndex) {
-  LOGF("AcquireNextImage enter.\n");
   CallbackSwapchain* swp = reinterpret_cast<CallbackSwapchain*>(swapchain);
   if (!swp->GetImage(timeout, pImageIndex)) {
     return timeout == 0 ? VK_NOT_READY : VK_TIMEOUT;
@@ -382,13 +399,11 @@ VKAPI_ATTR VkResult VKAPI_CALL vkAcquireNextImageKHR(
                     (has_semaphore ? 1u : 0u),      // waitSemaphoreCount
                     (has_semaphore ? &semaphore : nullptr)};
   VkResult ret = swapchain::vkQueueSubmit(q, 1, &info, fence);
-  LOGF("AcquireNextImage exit.\n");
   return ret;
 }
 
 VKAPI_ATTR VkResult VKAPI_CALL
 vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR* pPresentInfo) {
-  LOGF("QueuePresent enter\n");
   // We submit to the queue the commands set up by the callback swapchain.
   // This will start a copy operation from the image to the swapchain
   // buffers.
@@ -417,7 +432,6 @@ vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR* pPresentInfo) {
     swp->NotifySubmitted(image_index);
   }
 
-  LOGF("QueuePresent exit\n");
   return VkResult(res);
 }
 

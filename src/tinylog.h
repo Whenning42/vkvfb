@@ -15,6 +15,10 @@
 #include <unistd.h>
 #include <fcntl.h>
 
+inline const char* kLogLayer = "LAYER";
+inline const char* kLogSync = "SYNC";
+
+
 namespace tinylog {
 
 // Shared across TUs (C++17 inline variables)
@@ -41,7 +45,10 @@ inline int set_file(const char* path, bool append = true, mode_t mode = 0644) {
 }
 
 // printf-style logger. Thread-safe, single writev() to avoid interleaving.
-inline void logf(const char* fmt, ...) noexcept {
+inline void logf(const char* channel, const char* fmt, ...) noexcept {
+    // TODO: Allow for filtering channels.
+    return;
+
     timespec ts;
     ::clock_gettime(CLOCK_REALTIME, &ts);
 
@@ -100,11 +107,6 @@ inline void logf(const char* fmt, ...) noexcept {
     std::lock_guard<std::mutex> l(g_mu);
     int fd = g_fd;
     (void)::writev(fd, iov, 4);
-}
-
-// C++ convenience overload
-inline void log(std::string_view s) noexcept {
-    logf("%.*s", static_cast<int>(s.size()), s.data());
 }
 
 } // namespace tinylog

@@ -20,10 +20,20 @@
 #include <cassert>
 
 #include "shm_pixbuf_data.h"
+#include "tinylog.h"
 
 ShmPixbufReader::ShmPixbufReader(const std::string& path) 
   : shm_(path, 'r'), sem_(path + "_sem", false, 1) {
   data_ = (ShmPixbufData*)shm_.map();
+}
+
+void ShmPixbufReader::acquire() {
+  current_generation_ = sem_.wait(UINT64_MAX);
+  LOGF(kLogSync, "Acquired reader sem: %s\n", sem_.name().c_str());
+}
+void ShmPixbufReader::release() {
+  sem_.post(current_generation_);
+  LOGF(kLogSync, "Released reader sem: %s\n", sem_.name().c_str());
 }
 
 int32_t ShmPixbufReader::get_width() {

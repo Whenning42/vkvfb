@@ -70,13 +70,18 @@ void Shm::resize(size_t new_size) {
   if (new_size == size_) {
     return;
   }
-  LOGF("Resizing shm with mode '%c' old size: %zu, new size: %zu\n", mode_, size_, new_size);
+  LOGF(kLogSync, "Resizing shm with mode '%c' old size: %zu, new size: %zu\n", mode_, size_, new_size);
   
   if (mode_ == 'w') {
     if (ftruncate(shm_fd_, new_size) == -1) {
       perror("Failed to resize shared memory");
       exit(1);
     }
+  } else {
+    LOGF(kLogSync, "reader shm resize. new_size: %zu\n", new_size);
+    off_t fsize;
+    fsize = lseek(shm_fd_, 0, SEEK_END);
+    LOGF(kLogSync, "reader shm file size: %zu\n", fsize);
   }
   
   void* new_map = mremap(map_, size_, new_size, MREMAP_MAYMOVE);

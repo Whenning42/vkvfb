@@ -21,6 +21,7 @@
 #include <vulkan/vulkan_xlib.h>
 #include <vulkan/vulkan_xcb.h>
 
+#include <algorithm>
 #include <cstdio>
 #include <cstring>
 #include <iostream>
@@ -29,6 +30,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "tinylog.h"
 #include "swapchain.h"
 
 #define LAYER_NAME "CallbackSwapchain"
@@ -58,10 +60,15 @@ bool layer_disabled() {
   }
   return !enabled;
 }
+
+bool swapchain_disabled() {
+  const char* disable_env = std::getenv("DISABLE_SWAPCHAIN");
+  return disable_env && std::string(disable_env) == "1";
+}
 }
 
 Context& GetGlobalContext() {
-  // To avoid bad cleanup, we never free this :(
+  // To avoid bad cleanup, we never free this.
   // If we don't do this, we could race in multithreaded applications.
   static Context* kContext = new Context();
   return *kContext;
@@ -126,8 +133,6 @@ VKAPI_ATTR VkResult VKAPI_CALL vkCreateInstance(
   PFN_vkCreateInstance create_instance = reinterpret_cast<PFN_vkCreateInstance>(
       get_instance_proc_addr(NULL, "vkCreateInstance"));
 
-
-
   if (create_instance == NULL) {
     return VK_ERROR_INITIALIZATION_FAILED;
   }
@@ -135,27 +140,9 @@ VKAPI_ATTR VkResult VKAPI_CALL vkCreateInstance(
   // so advance the pointer for it.
   layer_info->u.pLayerInfo = layer_info->u.pLayerInfo->pNext;
 
-  // Actually call vkCreateInstance, and keep track of the result.
+  // Call vkCreateInstance, and keep track of the result.
   VkResult result = create_instance(pCreateInfo, pAllocator, pInstance);
-
-  // If it failed, then we don't need to track this instance.
   if (result != VK_SUCCESS) return result;
-
-  PFN_vkEnumeratePhysicalDevices enumerate_physical_devices =
-      reinterpret_cast<PFN_vkEnumeratePhysicalDevices>(
-          get_instance_proc_addr(*pInstance, "vkEnumeratePhysicalDevices"));
-  if (!enumerate_physical_devices) {
-    return VK_ERROR_INITIALIZATION_FAILED;
-  }
-
-  PFN_vkEnumerateDeviceExtensionProperties
-      enumerate_device_extension_properties =
-          reinterpret_cast<PFN_vkEnumerateDeviceExtensionProperties>(
-              get_instance_proc_addr(*pInstance,
-                                     "vkEnumerateDeviceExtensionProperties"));
-  if (!enumerate_device_extension_properties) {
-    return VK_ERROR_INITIALIZATION_FAILED;
-  }
 
   InstanceData data;
 
@@ -170,6 +157,9 @@ VKAPI_ATTR VkResult VKAPI_CALL vkCreateInstance(
   GET_PROC(vkGetPhysicalDeviceQueueFamilyProperties);
   GET_PROC(vkGetPhysicalDeviceProperties);
   GET_PROC(vkGetPhysicalDeviceMemoryProperties);
+  GET_PROC(vkGetPhysicalDeviceSurfaceCapabilitiesKHR);
+  GET_PROC(vkCreateXlibSurfaceKHR);
+  GET_PROC(vkCreateXcbSurfaceKHR);
 
 #undef GET_PROC
   // Add this instance, along with the vkGetInstanceProcAddr to our
@@ -202,11 +192,17 @@ VKAPI_ATTR void vkDestroyInstance(VkInstance instance,
 }
 
 // Overload vkCreateDevice. It is all book-keeping
-// and passthrouXcbgh to the next layer (or ICD) in the chain.
+// and passthrough to the next layer (or ICD) in the chain.
 VKAPI_ATTR VkResult VKAPI_CALL
 vkCreateDevice(VkPhysicalDevice gpu, const VkDeviceCreateInfo* pCreateInfo,
                const VkAllocationCallbacks* pAllocator, VkDevice* pDevice) {
   VkLayerDeviceCreateInfo* layer_info = get_layer_link_info(pCreateInfo);
+
+  if (pCreateInfo->ppEnabledExtensionNames) {
+    for (int i = 0; i < pCreateInfo->enabledExtensionCount; ++i) {
+      LOGF(kLogLayer, "Vkvfb running w/ enabled extension: %s\n", pCreateInfo->ppEnabledExtensionNames[i]);
+    }
+  }
 
   // Grab the fpGetInstanceProcAddr from the layer_info. We will get
   // vkCreateDevice from this.
@@ -217,7 +213,6 @@ vkCreateDevice(VkPhysicalDevice gpu, const VkDeviceCreateInfo* pCreateInfo,
 
   PFN_vkCreateDevice create_device = reinterpret_cast<PFN_vkCreateDevice>(
       get_instance_proc_addr(NULL, "vkCreateDevice"));
-
   if (!create_device) {
     return VK_ERROR_INITIALIZATION_FAILED;
   }
@@ -227,14 +222,10 @@ vkCreateDevice(VkPhysicalDevice gpu, const VkDeviceCreateInfo* pCreateInfo,
   PFN_vkGetDeviceProcAddr get_device_proc_addr =
       layer_info->u.pLayerInfo->pfnNextGetDeviceProcAddr;
 
-  // The next layer may read from layer_info,
-  // so advance the pointer for it.
+  // The next layer may read from layer_info, so advance the pointer for it.
   layer_info->u.pLayerInfo = layer_info->u.pLayerInfo->pNext;
 
-  // Actually make the call to vkCreateDevice.
   VkResult result = create_device(gpu, pCreateInfo, pAllocator, pDevice);
-
-  // If we failed, then we don't store the associated pointers.
   if (result != VK_SUCCESS) {
     return result;
   }
@@ -264,6 +255,7 @@ vkCreateDevice(VkPhysicalDevice gpu, const VkDeviceCreateInfo* pCreateInfo,
   GET_PROC(vkGetImageMemoryRequirements);
   GET_PROC(vkBindImageMemory);
   GET_PROC(vkDestroyImage);
+  GET_PROC(vkCreateImageView);
 
   GET_PROC(vkCreateBuffer);
   GET_PROC(vkGetBufferMemoryRequirements);
@@ -313,6 +305,12 @@ vkCreateDevice(VkPhysicalDevice gpu, const VkDeviceCreateInfo* pCreateInfo,
     }
   }
 
+  {
+    auto swp_map = GetGlobalContext().GetSwapchainImageMap();
+    (*swp_map)[*pDevice] = {};
+  }
+
+  LOGF(kLogLayer, "Created device: %p\n", *pDevice);
   return result;
 }
 
@@ -410,10 +408,14 @@ VKAPI_ATTR VkResult VKAPI_CALL vkAllocateCommandBuffers(
   auto command_buffer_map = GetGlobalContext().GetCommandBufferMap();
   const auto device_data = GetGlobalContext().GetDeviceData(device);
 
+  LOGF(kLogLayer, "Layer vkAllocateCommandBuffers device: %p\n", device);
+  LOGF(kLogLayer, "Layer vkAllocateCommandBuffers pfn: %p\n", device_data->vkAllocateCommandBuffers);
   VkResult res = device_data->vkAllocateCommandBuffers(device, pAllocateInfo,
                                                        pCommandBuffers);
+  LOGF(kLogLayer, "Allocated command buffers\n");
   if (res == VK_SUCCESS) {
     for (size_t i = 0; i < pAllocateInfo->commandBufferCount; ++i) {
+      LOGF(kLogLayer, "  buffer: %p\n", pCommandBuffers[i]);
       (*command_buffer_map)[pCommandBuffers[i]] = {
           device, device_data->vkCmdPipelineBarrier,
           device_data->vkCmdWaitEvents};
@@ -449,6 +451,34 @@ void vkFreeCommandBuffers(VkDevice device, VkCommandPool commandPool,
       device, commandPool, commandBufferCount, pCommandBuffers);
 }
 
+VKAPI_ATTR VkResult VKAPI_CALL vkCreateImageView(VkDevice device,
+                                                 const VkImageViewCreateInfo* pCreateInfo,
+                                                 const VkAllocationCallbacks* pAllocator,
+                                                 VkImageView* pView) {
+  LOGF(kLogLayer, "vkCreateImageView: image=%p, baseMipLevel=%u, levelCount=%u\n",
+         (void*)pCreateInfo->image,
+         pCreateInfo->subresourceRange.baseMipLevel,
+         pCreateInfo->subresourceRange.levelCount);
+
+  // Override base_mip_level to 0 for swapchain images.
+  // This is a workaround for factorio passing in baseMipLevel = 1 for some swapchain
+  // image views.
+  VkImageViewCreateInfo info = *pCreateInfo;
+
+  VkImage image = pCreateInfo->image;
+  const std::vector<VkImage>& swp_images = *GetGlobalContext().SwapchainImages(device);
+  if (std::find(swp_images.begin(), swp_images.end(), image) != swp_images.end()) {
+    uint32_t& base_mip_level = info.subresourceRange.baseMipLevel;
+    if (base_mip_level == 1) {
+      LOGF(kLogLayer, "Overriding image basemiplevel to 0.\n");
+      base_mip_level = 0;
+    }
+  }
+  
+  return GetGlobalContext().GetDeviceData(device)->vkCreateImageView(
+      device, &info, pAllocator, pView);
+}
+
 // Overload GetInstanceProcAddr.
 // It also provides the overloaded function for vkCreateDevice. This way we can
 // also hook vkGetDeviceProcAddr.
@@ -478,32 +508,34 @@ vkGetInstanceProcAddr(VkInstance instance, const char* funcName) {
 
   // From here on down these are what is needed for
   // swapchain/surface support.
-  INTERCEPT(vkDestroySurfaceKHR);
+  if (!swapchain_disabled()) {
+    INTERCEPT(vkDestroySurfaceKHR);
 
-  INTERCEPT(vkGetPhysicalDeviceSurfaceSupportKHR);
-  INTERCEPT(vkGetPhysicalDeviceSurfaceFormatsKHR);
-  INTERCEPT(vkGetPhysicalDeviceSurfaceFormats2KHR);
-  INTERCEPT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR);
-  INTERCEPT(vkGetPhysicalDeviceSurfaceCapabilities2KHR);
-  INTERCEPT(vkGetPhysicalDeviceSurfacePresentModesKHR);
+    INTERCEPT(vkGetPhysicalDeviceSurfaceSupportKHR);
+    INTERCEPT(vkGetPhysicalDeviceSurfaceFormatsKHR);
+    INTERCEPT(vkGetPhysicalDeviceSurfaceFormats2KHR);
+    INTERCEPT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR);
+    INTERCEPT(vkGetPhysicalDeviceSurfaceCapabilities2KHR);
+    INTERCEPT(vkGetPhysicalDeviceSurfacePresentModesKHR);
 
-  // From here down it is just functions that have to be overriden for swapchain
-  INTERCEPT(vkQueuePresentKHR);
-  INTERCEPT(vkQueueSubmit);
-  INTERCEPT(vkCmdPipelineBarrier);
-  INTERCEPT(vkCmdWaitEvents);
-  INTERCEPT(vkCreateRenderPass);
+    // From here down it is just functions that have to be overriden for swapchain
+    INTERCEPT(vkQueuePresentKHR);
+    INTERCEPT(vkQueueSubmit);
+    INTERCEPT(vkCmdPipelineBarrier);
+    INTERCEPT(vkCmdWaitEvents);
+    INTERCEPT(vkCreateRenderPass);
 
-  INTERCEPT(vkCreateSwapchainKHR);
-  INTERCEPT(vkDestroySwapchainKHR);
-  INTERCEPT(vkGetSwapchainImagesKHR);
-  INTERCEPT(vkAcquireNextImageKHR);
+    INTERCEPT(vkCreateSwapchainKHR);
+    INTERCEPT(vkDestroySwapchainKHR);
+    INTERCEPT(vkGetSwapchainImagesKHR);
+    INTERCEPT(vkAcquireNextImageKHR);
 
-  INTERCEPT(vkAllocateCommandBuffers);
-  INTERCEPT(vkFreeCommandBuffers);
+    INTERCEPT(vkAllocateCommandBuffers);
+    INTERCEPT(vkFreeCommandBuffers);
 
-  INTERCEPT(vkCreateXcbSurfaceKHR);
-  INTERCEPT(vkCreateXlibSurfaceKHR);
+    INTERCEPT(vkCreateXcbSurfaceKHR);
+    INTERCEPT(vkCreateXlibSurfaceKHR);
+  }
 #undef INTERCEPT
 
   // If we are calling a non-overloaded function then we have to
@@ -532,21 +564,24 @@ vkGetDeviceProcAddr(VkDevice dev, const char* funcName) {
 
   INTERCEPT(vkGetDeviceProcAddr);
   INTERCEPT(vkDestroyDevice);
+  INTERCEPT(vkCreateImageView);
 
-  // From here down it is just functions that have to be overriden for swapchain
-  INTERCEPT(vkQueuePresentKHR);
-  INTERCEPT(vkQueueSubmit);
-  INTERCEPT(vkCmdPipelineBarrier);
-  INTERCEPT(vkCmdWaitEvents);
-  INTERCEPT(vkCreateRenderPass);
+  if (!swapchain_disabled()) {
+    // From here down it is just functions that have to be overriden for swapchain
+    INTERCEPT(vkQueuePresentKHR);
+    INTERCEPT(vkQueueSubmit);
+    INTERCEPT(vkCmdPipelineBarrier);
+    INTERCEPT(vkCmdWaitEvents);
+    INTERCEPT(vkCreateRenderPass);
 
-  INTERCEPT(vkCreateSwapchainKHR);
-  INTERCEPT(vkDestroySwapchainKHR);
-  INTERCEPT(vkGetSwapchainImagesKHR);
-  INTERCEPT(vkAcquireNextImageKHR);
+    INTERCEPT(vkCreateSwapchainKHR);
+    INTERCEPT(vkDestroySwapchainKHR);
+    INTERCEPT(vkGetSwapchainImagesKHR);
+    INTERCEPT(vkAcquireNextImageKHR);
 
-  INTERCEPT(vkAllocateCommandBuffers);
-  INTERCEPT(vkFreeCommandBuffers);
+    INTERCEPT(vkAllocateCommandBuffers);
+    INTERCEPT(vkFreeCommandBuffers);
+  }
 #undef INTERCEPT
 
   // If we are calling a non-overloaded function then we have to

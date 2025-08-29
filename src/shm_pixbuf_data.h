@@ -29,11 +29,10 @@ struct ShmPixbufData {
   // Field accesses are expected to be synchronized between processes by callers
   int32_t width = 0;
   int32_t height = 0;
-  uint8_t* pixels;
   // A width*height*4 sized block of pixels, that starts here.
   uint8_t first_pixel;
 
-  ShmPixbufData(): pixels(&first_pixel) {}
+  ShmPixbufData() = default;
 
   static size_t pixbuf_size(int32_t width, int32_t height) {
     // Casting to size_t before multiplication protects against possible overflows at very high resolutions.

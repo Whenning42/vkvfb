@@ -30,9 +30,10 @@ class ShmPixbufWriter {
   void write_pixels(const uint8_t* pixels, int32_t width, int32_t height, bool force_opaque=false);
 
  private:
+  // Protects shm_ and data_.
+   Semaphore sem_;
    Shm shm_;
    ShmPixbufData* data_;
-   Semaphore sem_;
    Semaphore::gen current_generation_;
 };
 

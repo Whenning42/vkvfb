@@ -17,10 +17,14 @@
 #ifndef TIMEOUT_SEM_H
 #define TIMEOUT_SEM_H
 
+// Note: It may be simpler to use a double-buffered robust pthread_mutex locked
+// pixbuf instead of a 
+
 #include <atomic>
 #include <cstddef>
 #include <semaphore.h>
 #include <string>
+
 
 
 class MPMu {
@@ -46,6 +50,7 @@ class Semaphore {
   // Pass in UINT64_MAX to wait indefintely.
   gen wait(uint64_t nanos);
   int32_t get_value();
+  const std::string name() { return name_; }
 
  private:
   void advance_gen();
@@ -56,6 +61,7 @@ class Semaphore {
   MPMu sem_mu_;
   sem_t* sem_;
   int32_t initial_value_;
+  std::string name_;
 };
 
 #endif

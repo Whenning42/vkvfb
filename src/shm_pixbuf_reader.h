@@ -31,8 +31,8 @@ class ShmPixbufReader {
 
   // Callers are required to run any get or read functions between calls to acquire
   // and release.
-  void acquire() { current_generation_ = sem_.wait(UINT64_MAX); }
-  void release() { sem_.post(current_generation_); }
+  void acquire();
+  void release();
   int32_t get_width();
   int32_t get_height();
   int32_t get_pixels_size();

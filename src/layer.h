@@ -21,6 +21,12 @@
 #include <vector>
 #include "vulkan/vulkan.h"
 
+#include <X11/Xlib.h>
+#include <xcb/xcb.h>
+#include <vulkan/vulkan_xlib.h>
+#include <vulkan/vulkan_xcb.h>
+
+
 #include "threading.h"
 
 namespace swapchain {
@@ -36,6 +42,10 @@ struct InstanceData {
       vkGetPhysicalDeviceQueueFamilyProperties;
   PFN_vkGetPhysicalDeviceProperties vkGetPhysicalDeviceProperties;
   PFN_vkGetPhysicalDeviceMemoryProperties vkGetPhysicalDeviceMemoryProperties;
+  PFN_vkGetPhysicalDeviceSurfaceCapabilitiesKHR vkGetPhysicalDeviceSurfaceCapabilitiesKHR;
+
+  PFN_vkCreateXlibSurfaceKHR vkCreateXlibSurfaceKHR;
+  PFN_vkCreateXcbSurfaceKHR vkCreateXcbSurfaceKHR;
 
   // All of the physical devices associated with this instance.
   std::vector<VkPhysicalDevice> physical_devices_;
@@ -79,6 +89,7 @@ struct DeviceData {
   PFN_vkGetImageMemoryRequirements vkGetImageMemoryRequirements;
   PFN_vkBindImageMemory vkBindImageMemory;
   PFN_vkDestroyImage vkDestroyImage;
+  PFN_vkCreateImageView vkCreateImageView;
 
   PFN_vkCreateBuffer vkCreateBuffer;
   PFN_vkGetBufferMemoryRequirements vkGetBufferMemoryRequirements;
@@ -151,6 +162,7 @@ struct Context {
       std::unordered_map<VkPhysicalDevice, PhysicalDeviceData>;
   using QueueMap = std::unordered_map<VkQueue, QueueData>;
   using DeviceMap = std::unordered_map<VkDevice, DeviceData>;
+  using SwapchainImageMap = std::unordered_map<VkDevice, std::vector<VkImage>>;
 
   ContextToken<InstanceMap> GetInstanceMap() {
     return ContextToken<InstanceMap>(instance_data_map_, instance_lock_);
@@ -205,6 +217,18 @@ struct Context {
                                     std::move(locker));
   }
 
+  ContextToken<SwapchainImageMap> GetSwapchainImageMap() {
+    std::unique_lock<threading::mutex> locker(device_swapchain_images_lock_);
+    return ContextToken<SwapchainImageMap>(device_swapchain_images_,
+                                           std::move(locker));
+  }
+
+  ContextToken<std::vector<VkImage>> SwapchainImages(VkDevice device) {
+    std::unique_lock<threading::mutex> locker(device_swapchain_images_lock_);
+    return ContextToken<std::vector<VkImage>>(device_swapchain_images_.at(device),
+                                              std::move(locker));
+  }
+
  private:
   // Map of instances to their data. Our other option would be
   // to wrap the instance object, but then we have to handle every possible
@@ -234,9 +258,10 @@ struct Context {
 
   // The global map of devices to their data.
   DeviceMap device_data_map_;
-
-  // Lock for use when reading/writing from kDeviceDataMap.
   threading::mutex device_lock_;
+
+  SwapchainImageMap device_swapchain_images_;
+  threading::mutex device_swapchain_images_lock_;
 };
 
 Context& GetGlobalContext();

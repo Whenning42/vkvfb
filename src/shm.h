@@ -21,6 +21,9 @@
 
 class Shm {
  public:
+  // Constructs an empty default shared memory object.
+  Shm() = default;
+
   // Mode must be either 'r' or 'w'.
   // In 'w' mode, a new shm is opened at the give path.
   // In 'r' mode, it's required that a shm already exists at path and it's opened
@@ -31,10 +34,10 @@ class Shm {
   size_t size() { return size_; }
 
  private:
-  int shm_fd_;
-  char mode_;
-  size_t size_;
-  void* map_;
+  int shm_fd_ = 0;
+  char mode_ = 'r';
+  size_t size_ = 0;
+  void* map_ = nullptr;
 };
 
 #endif

@@ -23,6 +23,8 @@
 
 #include <string>
 #include <vulkan/vulkan.h>
+#include <vulkan/vk_layer.h>
+
 #include <X11/Xlib.h>
 #include <xcb/xcb.h>
 #include <vulkan/vulkan_xlib.h>
@@ -36,6 +38,7 @@ struct CallbackSurface {
   std::string window_name;
   xcb_window_t window;
   xcb_connection_t* connection;
+  VkSurfaceKHR backing_surface;
 };
 
 // RegisterInstance set up all of the swapchain related physical

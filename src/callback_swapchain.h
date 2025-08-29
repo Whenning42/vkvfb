@@ -62,6 +62,10 @@ class CallbackSwapchain {
   // if timeout nanoseconds have passed and no image could be returned.
   // If timeout is UINT64_MAX, then this function will wait forever.
   bool GetImage(uint64_t timeout, uint32_t* image);
+
+  // Marks the requested image as free.
+  void FreeImage(uint32_t image_index);
+
   // Returns a vector of all of the images contained in this swapchain.
   std::vector<VkImage> GetImages(uint32_t num_images, bool create_new_images) {
     std::unique_lock<threading::mutex> sl(free_images_lock_);
@@ -77,6 +81,14 @@ class CallbackSwapchain {
       image_vec.push_back(data.image_);
     }
     return image_vec;
+  }
+
+  std::vector<VkImage> AllImages() {
+    std::vector<VkImage> images;
+    for (const auto& img_dat : image_data_) {
+      images.push_back(img_dat.image_);
+    }
+    return images;
   }
 
   // Returns the queue index that this swapchain was created with.
@@ -182,7 +194,7 @@ class CallbackSwapchain {
   // This is how many milliseconds we should wait for an image before waking up
   // and seeing if we should shut down.
   const uint32_t pending_image_timeout_in_milliseconds_;
-  // A flag to indicate whether GetImage() always wasit for the acquired image
+  // A flag to indicate whether GetImage() always waits for the acquired image
   // specified with the value pointed by the index pointer.  When set to true,
   // GetImage() will wait until the acquired image is ready to use. When set to
   // false, GetImage() will write the index of a randomly free image to the
