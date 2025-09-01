@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-project('VkCallbackSwapchain', 'cpp',
-  version: '0.0.0',
+project('Vkvfb', 'cpp',
+  version: '0.0.1',
   default_options: [
     'cpp_std=c++17',
     'warning_level=1',
