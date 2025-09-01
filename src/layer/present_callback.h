@@ -19,17 +19,17 @@
 
 #include <stddef.h>
 #include <stdint.h>
-#include <string>
 #include <vulkan/vulkan.h>
 
-#include "pixbuf/writer.h"
+#include <string>
 
+#include "pixbuf/pixbuf_writer.h"
 
 // Struct to store and pass to present callback.
 struct SwapchainData {
   int32_t width;
   int32_t height;
-  ShmPixbufWriter writer;
+  PixbufWriter writer;
   VkCompositeAlphaFlagBitsKHR composite_mode;
 
   SwapchainData(int32_t w, int32_t h, const std::string& window_name, VkCompositeAlphaFlagBitsKHR mode)

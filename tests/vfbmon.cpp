@@ -16,13 +16,14 @@
 
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
+#include <time.h>
+
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <string>
-#include <time.h>
 
-#include "pixbuf/reader.h"
+#include "pixbuf/pixbuf_reader.h"
 
 // Return epoch time in seconds.
 double time_sec() {
@@ -175,7 +176,7 @@ class VfbMonitor {
   }
   
   std::string window_id_;
-  ShmPixbufReader reader_;
+  PixbufReader reader_;
   Display* display_;
   int screen_;
   Window root_window_;

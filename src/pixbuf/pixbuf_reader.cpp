@@ -14,16 +14,18 @@
  * limitations under the License.
  */
 
-#include "reader.h"
+#include "pixbuf_reader.h"
 
-#include <cstring>
 #include <cassert>
+#include <cstring>
 
-#include "data.h"
+#include "pixbuf_data.h"
 
-
-ReadPixbuf::ReadPixbuf(ReadPixbuf&& other) noexcept 
-  : status(other.status), width(other.width), height(other.height), pixels(other.pixels) {
+ReadPixbuf::ReadPixbuf(ReadPixbuf&& other) noexcept
+    : status(other.status),
+      width(other.width),
+      height(other.height),
+      pixels(other.pixels) {
   other.pixels = nullptr;
 }
 
@@ -40,7 +42,7 @@ ReadPixbuf& ReadPixbuf::operator=(ReadPixbuf&& other) noexcept {
 }
 
 void ReadPixbuf::update(int32_t new_w, int32_t new_h, const uint8_t* data) {
-  size_t data_size = ShmPixbufData::pixbuf_size(new_w, new_h);
+  size_t data_size = PixbufData::pixbuf_size(new_w, new_h);
   if (new_w != width || new_h != height) {
     free(pixels);
     width = new_w;
@@ -50,12 +52,13 @@ void ReadPixbuf::update(int32_t new_w, int32_t new_h, const uint8_t* data) {
   memcpy(pixels, data, data_size);
 }
 
-ShmPixbufReader::ShmPixbufReader(const std::string& path) : mu_(path + "_mu", /*create=*/false) {
-  shm_ = Shm(path, 'r', ShmPixbufData::pixbuf_struct_size(0, 0));
-  data_ = (ShmPixbufData*)shm_.map();
+PixbufReader::PixbufReader(const std::string& path)
+    : mu_(path + "_mu", /*create=*/false) {
+  shm_ = Shm(path, 'r', PixbufData::pixbuf_struct_size(0, 0));
+  data_ = (PixbufData*)shm_.map();
 }
 
-const ReadPixbuf& ShmPixbufReader::read_pixels() {
+const ReadPixbuf& PixbufReader::read_pixels() {
   LockResult lock = mu_.mu().lock(kOneSecNanos);
   if (lock.state == LockState::OWNERDEAD || lock.state == LockState::TIMEOUT) {
     read_pixbuf_.status = StatusVal::FAILED;
@@ -64,11 +67,11 @@ const ReadPixbuf& ShmPixbufReader::read_pixels() {
 
   int32_t w = data_->width;
   int32_t h = data_->height;
-  size_t pixbuf_struct_size = ShmPixbufData::pixbuf_struct_size(w, h);
+  size_t pixbuf_struct_size = PixbufData::pixbuf_struct_size(w, h);
   shm_.resize(pixbuf_struct_size);
-  data_ = (ShmPixbufData*)shm_.map();
+  data_ = (PixbufData*)shm_.map();
   read_pixbuf_.update(w, h, &data_->first_pixel);
   read_pixbuf_.status = StatusVal::OK;
-  
+
   return read_pixbuf_;
 }

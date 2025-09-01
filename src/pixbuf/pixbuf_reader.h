@@ -14,22 +14,19 @@
  * limitations under the License.
  */
 
-#ifndef PIXBUF_READER_H_
-#define PIXBUF_READER_H_
+#ifndef PIXBUF_PIXBUF_READER_H_
+#define PIXBUF_PIXBUF_READER_H_
 
 #include <cstddef>
 #include <string>
 
-#include "ipc/shm.h"
-#include "pixbuf/data.h"
-#include "ipc/shm_mutex.h"
-#include "ipc/pmutex.h"
 #include "constants.h"
+#include "ipc/pmutex.h"
+#include "ipc/shm.h"
+#include "ipc/shm_mutex.h"
+#include "pixbuf/pixbuf_data.h"
 
-enum class StatusVal {
-  OK,
-  FAILED
-};
+enum class StatusVal { OK, FAILED };
 
 struct ReadPixbuf {
   StatusVal status = StatusVal::OK;
@@ -39,7 +36,7 @@ struct ReadPixbuf {
 
   ReadPixbuf() = default;
   ~ReadPixbuf() { free(pixels); }
-  
+
   // ReadPixbuf is moveable, but not copyable.
   ReadPixbuf(const ReadPixbuf&) = delete;
   ReadPixbuf& operator=(const ReadPixbuf&) = delete;
@@ -49,22 +46,22 @@ struct ReadPixbuf {
   void update(int32_t new_w, int32_t new_h, const uint8_t* data);
 };
 
-class ShmPixbufReader {
+class PixbufReader {
  public:
-  ShmPixbufReader(const std::string& path);
+  PixbufReader(const std::string& path);
   const ReadPixbuf& read_pixels();
 
   // Exposed for testing.
-  ShmPixbufData& get_data() { return *data_; };
-  Shm& get_shm() {return shm_; };
+  PixbufData& get_data() { return *data_; };
+  Shm& get_shm() { return shm_; };
 
  private:
   // shm_ and data_ are protected by mu_.
   ShmMutex mu_;
   Shm shm_;
-  ShmPixbufData* data_;
+  PixbufData* data_;
 
   ReadPixbuf read_pixbuf_;
 };
 
-#endif // PIXBUF_READER_H_
+#endif  // PIXBUF_PIXBUF_READER_H_

@@ -14,26 +14,29 @@
  * limitations under the License.
  */
 
-#ifndef PIXBUF_WRITER_H_
-#define PIXBUF_WRITER_H_
+#ifndef PIXBUF_PIXBUF_WRITER_H_
+#define PIXBUF_PIXBUF_WRITER_H_
 
 #include <cstddef>
 #include <string>
 
 #include "ipc/shm.h"
 #include "ipc/shm_mutex.h"
-#include "pixbuf/data.h"
+#include "pixbuf/pixbuf_data.h"
 
-class ShmPixbufWriter {
+class PixbufWriter {
  public:
-  ShmPixbufWriter(const std::string& path);
-  void write_pixels(const uint8_t* pixels, int32_t width, int32_t height, bool force_opaque=false);
+  PixbufWriter(const std::string& path);
+  // Writes the given pixel data to the shared pixbuf. If force_opaque is true,
+  // overrides the copied data's alpha channel (assuming RGBA8) to be 255.
+  void write_pixels(const uint8_t* pixels, int32_t width, int32_t height,
+                    bool force_opaque = false);
 
  private:
-   // Protects shm_ and data_.
-   ShmMutex mu_;
-   Shm shm_;
-   ShmPixbufData* data_;
+  // Protects shm_ and data_.
+  ShmMutex mu_;
+  Shm shm_;
+  PixbufData* data_;
 };
 
-#endif // PIXBUF_WRITER_H_
+#endif  // PIXBUF_PIXBUF_WRITER_H_

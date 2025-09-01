@@ -14,34 +14,37 @@
  * limitations under the License.
  */
 
-#ifndef PIXBUF_DATA_H_
-#define PIXBUF_DATA_H_
+#ifndef PIXBUF_PIXBUF_DATA_H_
+#define PIXBUF_PIXBUF_DATA_H_
 
-#include <atomic>
-#include <mutex>
-#include <string>
-#include <cstdint>
-#include <cstddef>
 #include <fcntl.h>
 #include <semaphore.h>
+
+#include <atomic>
+#include <cstddef>
+#include <cstdint>
+#include <mutex>
+#include <string>
+
 #include "ipc/pmutex.h"
 
-struct ShmPixbufData {
+struct PixbufData {
   // Field accesses must be externally synchronized.
   int32_t width = 0;
   int32_t height = 0;
   // A width*height*4 sized block of pixels, that starts here.
   uint8_t first_pixel;
 
-  ShmPixbufData(char mode) {}
+  PixbufData(char mode) {}
 
   static size_t pixbuf_size(int32_t width, int32_t height) {
-    // Casting to size_t before multiplication protects against possible overflows at very high resolutions.
+    // Casting to size_t before multiplication protects against possible
+    // overflows at very high resolutions.
     return (size_t)width * (size_t)height * 4;
   }
   static size_t pixbuf_struct_size(int32_t width, int32_t height) {
-    return pixbuf_size(width, height) + offsetof(ShmPixbufData, first_pixel);
+    return pixbuf_size(width, height) + offsetof(PixbufData, first_pixel);
   }
 };
 
-#endif  // PIXBUF_DATA_H_
+#endif  // PIXBUF_PIXBUF_DATA_H_

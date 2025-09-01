@@ -18,7 +18,7 @@
 #include <cstdlib>
 #include <string>
 
-#include "pixbuf/reader.h"
+#include "pixbuf/pixbuf_reader.h"
 
 int main(int argc, char* argv[]) {
     if (argc != 2) {
@@ -28,8 +28,8 @@ int main(int argc, char* argv[]) {
 
     std::string pixbuf_path = argv[1];
 
-    ShmPixbufReader reader(pixbuf_path);
-    
+    PixbufReader reader(pixbuf_path);
+
     const ReadPixbuf& result = reader.read_pixels();
     if (result.status != StatusVal::OK) {
         printf("Failed to read pixels\n");

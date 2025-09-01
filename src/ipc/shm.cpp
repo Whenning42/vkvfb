@@ -16,18 +16,16 @@
 
 #include "shm.h"
 
+#include <fcntl.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
-#include <fcntl.h>
 #include <unistd.h>
+
 #include <cstdio>
 #include <cstdlib>
 
-#include "pixbuf/data.h"
-#include "utility.h"
 #include "logger.h"
-
-
+#include "utility.h"
 
 Shm::Shm(const std::string& path, char mode, size_t alloc_size): mode_(mode) {
   int flags = O_RDWR;

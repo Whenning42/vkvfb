@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-#include "writer.h"
+#include "pixbuf_writer.h"
 
 #include <cassert>
 #include <cstring>
 
-#include "data.h"
 #include "constants.h"
+#include "pixbuf_data.h"
 
 namespace {
 
@@ -37,7 +37,7 @@ void memcpy_pixels(void* dst, const void* src, size_t size, bool force_opaque) {
   // Memcpy clamping every 4th byte to 255.
   uint32_t* from = (uint32_t*)(src);
   uint32_t* to = (uint32_t*)(dst);
-  uint32_t* end = (uint32_t*)(src) + size/4;
+  uint32_t* end = (uint32_t*)(src) + size / 4;
   while (from != end) {
     *to = *from | 0xff000000u;
     from++;
@@ -45,28 +45,30 @@ void memcpy_pixels(void* dst, const void* src, size_t size, bool force_opaque) {
   }
 }
 
-} // namespace
+}  // namespace
 
-ShmPixbufWriter::ShmPixbufWriter(const std::string& path) : mu_(path + "_mu", /*create=*/true) {
-  shm_ = Shm(path, 'w', ShmPixbufData::pixbuf_struct_size(0, 0));
-  data_ = new (shm_.map()) ShmPixbufData('w');
+PixbufWriter::PixbufWriter(const std::string& path)
+    : mu_(path + "_mu", /*create=*/true) {
+  shm_ = Shm(path, 'w', PixbufData::pixbuf_struct_size(0, 0));
+  data_ = new (shm_.map()) PixbufData('w');
 }
 
-void ShmPixbufWriter::write_pixels(const uint8_t* pixels, int32_t width, int32_t height, bool force_opaque) {
+void PixbufWriter::write_pixels(const uint8_t* pixels, int32_t width,
+                                int32_t height, bool force_opaque) {
   if (!pixels) {
-    fprintf(stderr, "ShmPixbufWriter::write_pixels: pixels cannot be null\n");
+    fprintf(stderr, "PixbufWriter::write_pixels: pixels cannot be null\n");
     exit(1);
   }
   if (width <= 0 || height <= 0) {
     return;
   }
-  
+
   LockResult res = mu_.mu().lock(2 * kOneSecNanos);
   if (res.state == LockState::LOCKED) {
-    size_t new_shm_size = ShmPixbufData::pixbuf_struct_size(width, height);
-    size_t pixbuf_size = ShmPixbufData::pixbuf_size(width, height);
+    size_t new_shm_size = PixbufData::pixbuf_struct_size(width, height);
+    size_t pixbuf_size = PixbufData::pixbuf_size(width, height);
     shm_.resize(new_shm_size);
-    data_ = (ShmPixbufData*)shm_.map();
+    data_ = (PixbufData*)shm_.map();
     data_->width = width;
     data_->height = height;
     memcpy_pixels(&data_->first_pixel, pixels, pixbuf_size, force_opaque);

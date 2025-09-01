@@ -38,8 +38,8 @@ sources = [
   'src/layer/callback_swapchain.cpp',
   'src/layer/present_callback.cpp',
   'src/ipc/shm.cpp',
-  'src/pixbuf/reader.cpp',
-  'src/pixbuf/writer.cpp',
+  'src/pixbuf/pixbuf_reader.cpp',
+  'src/pixbuf/pixbuf_writer.cpp',
 ]
 
 # Headers (for IDE support)
@@ -57,9 +57,9 @@ headers = [
   'src/ipc/pmutex.h',
   'src/ipc/fake_pmutex.h',
   'src/ipc/shm_mutex.h',
-  'src/pixbuf/data.h',
-  'src/pixbuf/reader.h',
-  'src/pixbuf/writer.h',
+  'src/pixbuf/pixbuf_data.h',
+  'src/pixbuf/pixbuf_reader.h',
+  'src/pixbuf/pixbuf_writer.h',
 ]
 
 # Include directories
@@ -91,10 +91,10 @@ json_file = configure_file(
 
 # Unit tests
 test_sources = [
-  'src/pixbuf/reader_test.cpp',
+  'src/pixbuf/pixbuf_reader_test.cpp',
   'src/ipc/shm.cpp',
-  'src/pixbuf/reader.cpp',
-  'src/pixbuf/writer.cpp',
+  'src/pixbuf/pixbuf_reader.cpp',
+  'src/pixbuf/pixbuf_writer.cpp',
 ]
 
 test_exe = executable('shm_pixbuf_reader_test',
@@ -109,7 +109,7 @@ test('shm_pixbuf_reader_test', test_exe)
 snapshot_vfb_sources = [
   'tests/snapshot_vfb.cpp',
   'src/ipc/shm.cpp',
-  'src/pixbuf/reader.cpp',
+  'src/pixbuf/pixbuf_reader.cpp',
 ]
 
 snapshot_vfb_exe = executable('snapshot_vfb',
@@ -121,7 +121,7 @@ snapshot_vfb_exe = executable('snapshot_vfb',
 vfbmon_sources = [
   'tests/vfbmon.cpp',
   'src/ipc/shm.cpp',
-  'src/pixbuf/reader.cpp',
+  'src/pixbuf/pixbuf_reader.cpp',
 ]
 
 x11_dep = dependency('x11')
