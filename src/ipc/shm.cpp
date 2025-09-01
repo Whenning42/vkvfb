@@ -23,7 +23,7 @@
 #include <cstdio>
 #include <cstdlib>
 
-#include "shm_pixbuf_data.h"
+#include "pixbuf/data.h"
 #include "utility.h"
 #include "logger.h"
 

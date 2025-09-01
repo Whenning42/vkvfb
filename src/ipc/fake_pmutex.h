@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FAKE_PMUTEX_H_
-#define FAKE_PMUTEX_H_
+#ifndef IPC_FAKE_PMUTEX_H_
+#define IPC_FAKE_PMUTEX_H_
 
 #include <tuple>
 #include <cstdint>
@@ -47,4 +47,4 @@ class FakePMutex {
   LockState state_;
 };
 
-#endif  // FAKE_PMUTEX_H_
+#endif  // IPC_FAKE_PMUTEX_H_

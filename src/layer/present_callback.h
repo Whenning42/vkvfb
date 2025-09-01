@@ -14,15 +14,15 @@
  * limitations under the License.
  */
 
-#ifndef PRESENT_CALLBACK_H_
-#define PRESENT_CALLBACK_H_
+#ifndef LAYER_PRESENT_CALLBACK_H_
+#define LAYER_PRESENT_CALLBACK_H_
 
 #include <stddef.h>
 #include <stdint.h>
 #include <string>
 #include <vulkan/vulkan.h>
 
-#include "shm_pixbuf_writer.h"
+#include "pixbuf/writer.h"
 
 
 // Struct to store and pass to present callback.
@@ -39,4 +39,4 @@ struct SwapchainData {
 void present_callback(void* user_data, uint8_t* pixels, size_t pixels_size);
 void cleanup_callback(void* user_data);
 
-#endif  // PRESENT_CALLBACK_H_
+#endif  // LAYER_PRESENT_CALLBACK_H_

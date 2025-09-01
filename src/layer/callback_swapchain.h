@@ -21,8 +21,8 @@
  *  - Fix missin dispatch table in internal allocated cmd buffer
  */
 
-#ifndef CALLBACK_SWAPCHAIN_H_
-#define CALLBACK_SWAPCHAIN_H_
+#ifndef LAYER_CALLBACK_SWAPCHAIN_H_
+#define LAYER_CALLBACK_SWAPCHAIN_H_
 
 #include <vulkan/vulkan.h>
 
@@ -208,4 +208,4 @@ class CallbackSwapchain {
 };
 }  // namespace swapchain
 
-#endif  // CALLBACK_SWAPCHAIN_H_
+#endif  // LAYER_CALLBACK_SWAPCHAIN_H_

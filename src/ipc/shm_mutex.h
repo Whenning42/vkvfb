@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef SHM_MUTEX_H_
-#define SHM_MUTEX_H_
+#ifndef IPC_SHM_MUTEX_H_
+#define IPC_SHM_MUTEX_H_
 
 #include "pmutex.h"
 #include "shm.h"
@@ -51,4 +51,4 @@ class ShmMutex {
   PMutex* mu_;
 };
 
-#endif // SHM_MUTEX_H_
+#endif // IPC_SHM_MUTEX_H_

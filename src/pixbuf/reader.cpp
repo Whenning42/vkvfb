@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-#include "shm_pixbuf_reader.h"
+#include "reader.h"
 
 #include <cstring>
 #include <cassert>
 
-#include "shm_pixbuf_data.h"
+#include "data.h"
 
 
 ReadPixbuf::ReadPixbuf(ReadPixbuf&& other) noexcept 

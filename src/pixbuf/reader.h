@@ -14,17 +14,16 @@
  * limitations under the License.
  */
 
-#ifndef SHM_PIXBUF_READER_H_
-#define SHM_PIXBUF_READER_H_
+#ifndef PIXBUF_READER_H_
+#define PIXBUF_READER_H_
 
 #include <cstddef>
 #include <string>
 
-#include "shm.h"
-#include "shm_pixbuf_data.h"
-#include "timeout_sem.h"
-#include "shm_mutex.h"
-#include "pmutex.h"
+#include "ipc/shm.h"
+#include "pixbuf/data.h"
+#include "ipc/shm_mutex.h"
+#include "ipc/pmutex.h"
 #include "constants.h"
 
 enum class StatusVal {
@@ -68,4 +67,4 @@ class ShmPixbufReader {
   ReadPixbuf read_pixbuf_;
 };
 
-#endif // SHM_PIXBUF_READER_H_
+#endif // PIXBUF_READER_H_

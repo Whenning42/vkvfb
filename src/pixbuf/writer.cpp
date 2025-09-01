@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-#include "shm_pixbuf_writer.h"
+#include "writer.h"
 
 #include <cassert>
 #include <cstring>
 
-#include "shm_pixbuf_data.h"
+#include "data.h"
 #include "constants.h"
 
 namespace {

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef SHM_PIXBUF_DATA_H_
-#define SHM_PIXBUF_DATA_H_
+#ifndef PIXBUF_DATA_H_
+#define PIXBUF_DATA_H_
 
 #include <atomic>
 #include <mutex>
@@ -24,7 +24,7 @@
 #include <cstddef>
 #include <fcntl.h>
 #include <semaphore.h>
-#include "pmutex.h"
+#include "ipc/pmutex.h"
 
 struct ShmPixbufData {
   // Field accesses must be externally synchronized.
@@ -44,4 +44,4 @@ struct ShmPixbufData {
   }
 };
 
-#endif  // SHM_PIXBUF_DATA_H_
+#endif  // PIXBUF_DATA_H_

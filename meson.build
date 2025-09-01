@@ -33,30 +33,33 @@ xcb_dep = dependency('xcb')
 
 # Source files
 sources = [
-  'src/layer.cpp',
-  'src/swapchain.cpp',
-  'src/callback_swapchain.cpp',
-  'src/present_callback.cpp',
-  'src/shm.cpp',
-  'src/shm_pixbuf_reader.cpp',
-  'src/shm_pixbuf_writer.cpp',
-  'src/timeout_sem.cpp',
+  'src/layer/layer.cpp',
+  'src/layer/swapchain.cpp',
+  'src/layer/callback_swapchain.cpp',
+  'src/layer/present_callback.cpp',
+  'src/ipc/shm.cpp',
+  'src/pixbuf/reader.cpp',
+  'src/pixbuf/writer.cpp',
 ]
 
 # Headers (for IDE support)
 headers = [
-  'src/layer.h',
-  'src/swapchain.h',
+  'src/layer/layer.h',
+  'src/layer/swapchain.h',
+  'src/layer/callback_swapchain.h',
+  'src/layer/present_callback.h',
   'src/threading.h',
-  'src/callback_swapchain.h',
-  'src/present_callback.h',
   'src/generic_unique_ptr.h',
-  'src/shm.h',
-  'src/shm_pixbuf_data.h',
-  'src/shm_pixbuf_reader.h',
-  'src/shm_pixbuf_writer.h',
-  'src/timeout_sem.h',
   'src/logger.h',
+  'src/constants.h',
+  'src/utility.h',
+  'src/ipc/shm.h',
+  'src/ipc/pmutex.h',
+  'src/ipc/fake_pmutex.h',
+  'src/ipc/shm_mutex.h',
+  'src/pixbuf/data.h',
+  'src/pixbuf/reader.h',
+  'src/pixbuf/writer.h',
 ]
 
 # Include directories
@@ -88,11 +91,10 @@ json_file = configure_file(
 
 # Unit tests
 test_sources = [
-  'src/shm_pixbuf_reader_test.cpp',
-  'src/shm.cpp',
-  'src/shm_pixbuf_reader.cpp',
-  'src/shm_pixbuf_writer.cpp',
-  'src/timeout_sem.cpp',
+  'src/pixbuf/reader_test.cpp',
+  'src/ipc/shm.cpp',
+  'src/pixbuf/reader.cpp',
+  'src/pixbuf/writer.cpp',
 ]
 
 test_exe = executable('shm_pixbuf_reader_test',
@@ -106,9 +108,8 @@ test('shm_pixbuf_reader_test', test_exe)
 
 snapshot_vfb_sources = [
   'tests/snapshot_vfb.cpp',
-  'src/shm.cpp',
-  'src/shm_pixbuf_reader.cpp',
-  'src/timeout_sem.cpp',
+  'src/ipc/shm.cpp',
+  'src/pixbuf/reader.cpp',
 ]
 
 snapshot_vfb_exe = executable('snapshot_vfb',
@@ -119,9 +120,8 @@ snapshot_vfb_exe = executable('snapshot_vfb',
 
 vfbmon_sources = [
   'tests/vfbmon.cpp',
-  'src/shm.cpp',
-  'src/shm_pixbuf_reader.cpp',
-  'src/timeout_sem.cpp',
+  'src/ipc/shm.cpp',
+  'src/pixbuf/reader.cpp',
 ]
 
 x11_dep = dependency('x11')

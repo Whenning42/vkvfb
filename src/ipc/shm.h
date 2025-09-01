@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef SHM_H_
-#define SHM_H_
+#ifndef IPC_SHM_H_
+#define IPC_SHM_H_
 
 #include <string>
 
@@ -41,4 +41,4 @@ class Shm {
   void* map_ = nullptr;
 };
 
-#endif  // SHM_H_
+#endif  // IPC_SHM_H_

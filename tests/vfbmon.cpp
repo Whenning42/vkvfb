@@ -22,7 +22,7 @@
 #include <string>
 #include <time.h>
 
-#include "shm_pixbuf_reader.h"
+#include "pixbuf/reader.h"
 
 // Return epoch time in seconds.
 double time_sec() {

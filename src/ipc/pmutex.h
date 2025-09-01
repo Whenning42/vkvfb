@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef PMUTEX_H_
-#define PMUTEX_H_
+#ifndef IPC_PMUTEX_H_
+#define IPC_PMUTEX_H_
 
 #include <pthread.h>
 #include <tuple>
@@ -117,4 +117,4 @@ inline PGuard::~PGuard() {
   }
 }
 
-#endif // PMUTEX_H_
+#endif // IPC_PMUTEX_H_

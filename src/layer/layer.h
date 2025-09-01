@@ -19,8 +19,8 @@
  *  - Track swapchain images 
  */
 
-#ifndef LAYER_H_
-#define LAYER_H_
+#ifndef LAYER_LAYER_H_
+#define LAYER_LAYER_H_
 
 #include <unordered_map>
 #include <vector>
@@ -273,4 +273,4 @@ Context& GetGlobalContext();
 
 }  // namespace swapchain
 
-#endif  // LAYER_H_
+#endif  // LAYER_LAYER_H_

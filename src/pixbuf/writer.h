@@ -14,16 +14,15 @@
  * limitations under the License.
  */
 
-#ifndef SHM_PIXBUF_WRITER_H_
-#define SHM_PIXBUF_WRITER_H_
+#ifndef PIXBUF_WRITER_H_
+#define PIXBUF_WRITER_H_
 
 #include <cstddef>
 #include <string>
 
-#include "shm.h"
-#include "shm_mutex.h"
-#include "shm_pixbuf_data.h"
-#include "timeout_sem.h"
+#include "ipc/shm.h"
+#include "ipc/shm_mutex.h"
+#include "pixbuf/data.h"
 
 class ShmPixbufWriter {
  public:
@@ -37,4 +36,4 @@ class ShmPixbufWriter {
    ShmPixbufData* data_;
 };
 
-#endif // SHM_PIXBUF_WRITER_H_
+#endif // PIXBUF_WRITER_H_

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#include "shm_pixbuf_reader.h"
-#include "shm_pixbuf_writer.h"
+#include "reader.h"
+#include "writer.h"
 #include "utility.h"
 
 #include <gtest/gtest.h>
