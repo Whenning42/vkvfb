@@ -1,6 +1,13 @@
-Vkvfb is a Vulkan layer that captures frames to a shared-memory buffer. It can
-be used to build capture or streaming tools or to run apps when you have Vulkan access
-but no Vulkan display path (e.g. Xvfb sessions on a machine with a graphics card).
+Vkvfb is a Vulkan layer that directs an application's presented frames to a
+shared-memory buffer instead of the desktop. This makes it a performant and low-level
+tool for enabling application rendering in contexts where you have access to Vulkan, but
+not to a hardware accelerated display path (e.g. running a game under Xvfb).
+
+I've written it to simplify the graphics stack of my downstream project [BounceRL](https://github.com/Whenning42/bounce-rl), 
+a tool for connecting AI agents to games. Vkvfb is also interesting in its own
+right as an example of how to do Vulkan layer-based frame capture and how to manage a
+synchronized and resizable shared memory segment ([src/layer/](src/layer/) and
+[src/ipc/](src/ipc/) respectively).
 
 Note: Vkvfb only supports Linux and X11.
 
@@ -8,7 +15,7 @@ Note: Vkvfb only supports Linux and X11.
 
 Dependencies: Vulkan, GTest, Xlib, XCB, and Xvfb (for some tests).
 
-```
+```sh
 meson setup build
 meson compile -C build
 meson test -C build --print-errorlogs # Optional: run tests
@@ -41,3 +48,12 @@ This project should be fairly stable. I'll add additional platforms
 Issues, feature requests, or pull requests are all welcome, but no guarantees that
 I'll respond to them. For major fixes or changes, open an issue before submitting
 a pull request.
+
+# Related Projects
+
+For other examples of vulkan capture layers, check out:
+
+- [obs-vkcapture](https://github.com/nowrep/obs-vkcapture/tree/master): A capture layer for OBS.
+- [pyrofling](https://github.com/Themaister/pyrofling): A capture layer for audio and video streaming.
+- [vk_callback_swapchain](https://github.com/google/vk_callback_swapchain): A swapchain implementation that calls a provided callback.
+
