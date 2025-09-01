@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef VK_CALLBACK_SWAPCHAIN_THREADING_H_
-#define VK_CALLBACK_SWAPCHAIN_THREADING_H_
+#ifndef THREADING_H_
+#define THREADING_H_
 
 #ifdef _WIN32
 // We need to define these to get CONDITION_VARIABLE
@@ -161,4 +161,4 @@ class condition_variable {
 };
 }
 }
-#endif  // VK_CALLBACK_SWAPCHAIN_THREADING_H_
+#endif  // THREADING_H_

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef SHM_H
-#define SHM_H
+#ifndef SHM_H_
+#define SHM_H_
 
 #include <string>
 
@@ -41,4 +41,4 @@ class Shm {
   void* map_ = nullptr;
 };
 
-#endif
+#endif  // SHM_H_

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef SHM_PIXBUF_WRITER_H
-#define SHM_PIXBUF_WRITER_H
+#ifndef SHM_PIXBUF_WRITER_H_
+#define SHM_PIXBUF_WRITER_H_
 
 #include <cstddef>
 #include <string>
@@ -37,4 +37,4 @@ class ShmPixbufWriter {
    ShmPixbufData* data_;
 };
 
-#endif // SHM_PIXBUF_WRITER_H
+#endif // SHM_PIXBUF_WRITER_H_

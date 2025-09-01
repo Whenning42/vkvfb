@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef SHM_PIXBUF_READER_H
-#define SHM_PIXBUF_READER_H
+#ifndef SHM_PIXBUF_READER_H_
+#define SHM_PIXBUF_READER_H_
 
 #include <cstddef>
 #include <string>
@@ -68,4 +68,4 @@ class ShmPixbufReader {
   ReadPixbuf read_pixbuf_;
 };
 
-#endif // SHM_PIXBUF_READER_H
+#endif // SHM_PIXBUF_READER_H_

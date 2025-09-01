@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef TIMEOUT_SEM_H
-#define TIMEOUT_SEM_H
+#ifndef TIMEOUT_SEM_H_
+#define TIMEOUT_SEM_H_
 
 // Note: It may be simpler to use a double-buffered robust pthread_mutex locked
 // pixbuf instead of a 
@@ -64,5 +64,5 @@ class Semaphore {
   std::string name_;
 };
 
-#endif
+#endif  // TIMEOUT_SEM_H_
 

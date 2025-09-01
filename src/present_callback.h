@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef PRESENT_CALLBACK_H
-#define PRESENT_CALLBACK_H
+#ifndef PRESENT_CALLBACK_H_
+#define PRESENT_CALLBACK_H_
 
 #include <stddef.h>
 #include <stdint.h>
@@ -39,4 +39,4 @@ struct SwapchainData {
 void present_callback(void* user_data, uint8_t* pixels, size_t pixels_size);
 void cleanup_callback(void* user_data);
 
-#endif  // PRESENT_CALLBACK_H
+#endif  // PRESENT_CALLBACK_H_

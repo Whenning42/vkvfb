@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef GENERIC_UNIQUE_PTR_H
-#define GENERIC_UNIQUE_PTR_H
+#ifndef GENERIC_UNIQUE_PTR_H_
+#define GENERIC_UNIQUE_PTR_H_
 
 #include <memory>
 
@@ -46,4 +46,4 @@ template <typename T> generic_unique_ptr make_generic_unique(T* obj) {
   return generic_unique_ptr(obj, [](void* p){ delete static_cast<T*>(p); });
 }
 
-#endif  // GENERIC_UNIQUE_PTR_H
+#endif  // GENERIC_UNIQUE_PTR_H_

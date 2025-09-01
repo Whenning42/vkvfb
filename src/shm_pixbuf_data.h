@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef SHM_PIXBUF_DATA_H
-#define SHM_PIXBUF_DATA_H
+#ifndef SHM_PIXBUF_DATA_H_
+#define SHM_PIXBUF_DATA_H_
 
 #include <atomic>
 #include <mutex>
@@ -44,4 +44,4 @@ struct ShmPixbufData {
   }
 };
 
-#endif
+#endif  // SHM_PIXBUF_DATA_H_

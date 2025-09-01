@@ -21,8 +21,8 @@
  *  - Override mip levels on swapchain create images
  */
 
-#ifndef VK_CALLBACK_SWAPCHAIN_SWAPCHAIN_H_
-#define VK_CALLBACK_SWAPCHAIN_SWAPCHAIN_H_
+#ifndef SWAPCHAIN_H_
+#define SWAPCHAIN_H_
 
 #include <string>
 #include <vulkan/vulkan.h>
@@ -140,4 +140,4 @@ VKAPI_ATTR VkResult VKAPI_CALL vkCreateRenderPass(
     VkDevice device, const VkRenderPassCreateInfo *pCreateInfo,
     const VkAllocationCallbacks *pAllocator, VkRenderPass *pRenderPass);
 }
-#endif // VK_CALLBACK_SWAPCHAIN_SWAPCHAIN_H_
+#endif // SWAPCHAIN_H_

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef LOGGER_H
-#define LOGGER_H
+#ifndef LOGGER_H_
+#define LOGGER_H_
 
 #include <cstdarg>
 #include <cstdio>
@@ -94,4 +94,4 @@ inline void log(const char* channel, const char* fmt, ...) {
 
 #define LOG(...) ::logger::log(__VA_ARGS__)
 
-#endif // LOGGER_H
+#endif // LOGGER_H_
