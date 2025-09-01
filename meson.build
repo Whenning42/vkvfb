@@ -82,8 +82,8 @@ conf_data.set('LIBRARY_NAME', library_name)
 
 # Generate the layer manifest JSON file
 json_file = configure_file(
-  input: 'VkvfbLayer.json',
-  output: 'VkvfbLayer.json',
+  input: 'VkLayer_vkvfb_vkvfb.json',
+  output: 'VkLayer_vkvfb_vkvfb.json',
   configuration: conf_data,
   install: true,
   install_dir: get_option('libdir')
@@ -131,4 +131,13 @@ vfbmon_exe = executable('vfbmon',
   dependencies: x11_dep,
   cpp_args: cpp_args,
   include_directories: include_directories(inc_dirs),
+)
+
+# Python integration test
+test('snapshot_test', 
+  find_program('python3'),
+  args: [files('tests/snapshot_test.py')],
+  depends: [vklayer_lib, snapshot_vfb_exe],
+  timeout: 30,
+  is_parallel: false,
 )

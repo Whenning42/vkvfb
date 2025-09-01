@@ -50,7 +50,7 @@ if [ ! -f "$LAYER_LIB" ]; then
 fi
 
 # Check if the layer manifest exists
-LAYER_JSON="$BUILD_DIR/VkvfbLayer.json"
+LAYER_JSON="$BUILD_DIR/VkLayer_vkvfb_vkvfb.json"
 if [ ! -f "$LAYER_JSON" ]; then
   echo "Error: Vkvfb layer manifest not found at $LAYER_JSON"
   echo "Please run 'meson compile -C build' first"
@@ -60,12 +60,12 @@ fi
 # Set environment variables for vkvfb layer
 export LD_LIBRARY_PATH="$BUILD_DIR${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 export VK_LAYER_PATH="$BUILD_DIR${VK_LAYER_PATH:+:$VK_LAYER_PATH}"
-export VK_INSTANCE_LAYERS="VK_LAYER_Vkvfb${VK_INSTANCE_LAYERS:+:$VK_INSTANCE_LAYERS}"
+export VK_LOADER_LAYERS_ENABLE="VK_LAYER_VKVFB_vkvfb${VK_LOADER_LAYERS_ENABLE:+:$VK_LOADER_LAYERS_ENABLE}"
 
 echo "Running with vkvfb layer enabled:"
 echo "  LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
 echo "  VK_LAYER_PATH=$VK_LAYER_PATH"
-echo "  VK_INSTANCE_LAYERS=$VK_INSTANCE_LAYERS"
+echo "  VK_LOADER_LAYERS_ENABLE=$VK_LOADER_LAYERS_ENABLE"
 echo ""
 echo "Command: $*"
 echo ""

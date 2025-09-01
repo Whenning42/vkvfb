@@ -2,6 +2,7 @@
 
 import glob
 import os
+import re
 import subprocess
 import time
 
@@ -45,33 +46,36 @@ build_dir = os.path.join(project_root, "build")
 
 os.environ["LD_LIBRARY_PATH"] = build_dir
 os.environ["VK_LAYER_PATH"] = build_dir
-os.environ["VK_INSTANCE_LAYERS"] = "VK_LAYER_Vkvfb"
+os.environ["VK_LOADER_LAYERS_ENABLE"] = "VK_LAYER_VKVFB_vkvfb"
 
 env = os.environ.copy()
 vkcube_process = subprocess.Popen(
     ["vkcube", "--width", "640", "--height", "480"],
-    stdout=subprocess.DEVNULL,
-    stderr=subprocess.DEVNULL,
+    stdout=subprocess.PIPE,
+    stderr=subprocess.STDOUT,
     env=env,
 )
 
 time.sleep(2)
 
-vkcube_ret = vkcube_process.poll()
-if vkcube_ret:
-    print(f"vkcube exited with code: {vkcube_ret}")
+try:
+    out, _ = vkcube_process.communicate(timeout=2)
+    print(f"vkcube exited with code: {vkcube_process.returncode}")
+    print(out.decode())
     xvfb_process.terminate()
     exit(1)
+except subprocess.TimeoutExpired:
+    pass
 
 
 def find_pixbuf_path():
-    """Find a pixbuf shared memory path that looks like a window ID"""
+    """Find a pixbuf shared memory path that matches our pixbuf pattern."""
+    pixbuf_pattern = r"0x\d+"
     shm_dir = "/dev/shm"
     if not os.path.exists(shm_dir):
         return None
-
     for filename in os.listdir(shm_dir):
-        if filename.isdigit() and len(filename) >= 6:
+        if re.match(pixbuf_pattern, filename):
             return filename
     return None
 

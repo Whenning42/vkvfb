@@ -1,7 +1,7 @@
 {
   "file_format_version": "1.0.0",
   "layer": {
-    "name": "VK_LAYER_Vkvfb",
+    "name": "VK_LAYER_VKVFB_vkvfb",
     "type": "GLOBAL",
     "library_path": "./@LIBRARY_NAME@",
     "api_version": "1.0.5",
@@ -10,13 +10,6 @@
     "functions": {
       "vkGetDeviceProcAddr": "CallbackSwapchainGetDeviceProcAddr",
       "vkGetInstanceProcAddr": "CallbackSwapchainGetInstanceProcAddr"
-    },
-    "enable_environment": {
-      "VKVFB": "1"
-    },
-    "disable_environment": {
-      "DISABLE_VKVFB": "1"
     }
-
   }
 }

@@ -51,18 +51,12 @@
 
 namespace swapchain {
 namespace {
-bool layer_disabled() {
-  bool enabled = false;
-  const char* enable_env = std::getenv("VKVFB");
+bool layer_enabled() {
   const char* disable_env = std::getenv("VKVFB_DISABLE");
-
-  if (enable_env && std::string(enable_env) == "1") {
-    enabled = true;
-  }
   if (disable_env && std::string(disable_env) == "1") {
-    enabled = false;
+    return false;
   }
-  return !enabled;
+  return true;
 }
 
 bool swapchain_disabled() {
@@ -121,9 +115,8 @@ typename link_info_traits<T>::layer_info_type* get_layer_link_info(
 VKAPI_ATTR VkResult VKAPI_CALL vkCreateInstance(
     const VkInstanceCreateInfo* pCreateInfo,
     const VkAllocationCallbacks* pAllocator, VkInstance* pInstance) {
-  if (!layer_disabled()) {
-    std::cout << "Vkvfb loaded." << std::endl;
-  } else {
+  std::cout << "Vkvfb init." << std::endl;
+  if (!layer_enabled()) {
     std::cout << "Vkvfb disabled by env vars." << std::endl;
   }
 
@@ -479,7 +472,7 @@ VKAPI_ATTR VkResult VKAPI_CALL vkCreateImageView(VkDevice device,
 // Lastly it provides vkDestroyInstance for book-keeping purposes.
 VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL
 vkGetInstanceProcAddr(VkInstance instance, const char* funcName) {
-  if (layer_disabled()) {
+  if (!layer_enabled()) {
     PFN_vkGetInstanceProcAddr instance_proc_addr =
         GetGlobalContext().GetInstanceData(instance)->vkGetInstanceProcAddr;
     return instance_proc_addr(instance, funcName);
@@ -546,7 +539,7 @@ vkGetInstanceProcAddr(VkInstance instance, const char* funcName) {
 // The rest of the overloads are swapchain-specific.
 VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL
 vkGetDeviceProcAddr(VkDevice dev, const char* funcName) {
-  if (layer_disabled()) {
+  if (!layer_enabled()) {
     PFN_vkGetDeviceProcAddr device_proc_addr =
         GetGlobalContext().GetDeviceData(dev)->vkGetDeviceProcAddr;
     return device_proc_addr(dev, funcName);
