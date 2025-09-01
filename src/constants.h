@@ -14,27 +14,11 @@
  * limitations under the License.
  */
 
-#ifndef SHM_PIXBUF_WRITER_H
-#define SHM_PIXBUF_WRITER_H
+#ifndef CONSTANTS_H_
+#define CONSTANTS_H_
 
-#include <cstddef>
-#include <string>
+#include <cstdint>
 
-#include "shm.h"
-#include "shm_mutex.h"
-#include "shm_pixbuf_data.h"
-#include "timeout_sem.h"
+inline const uint64_t kOneSecNanos = 1'000'000'000ULL;
 
-class ShmPixbufWriter {
- public:
-  ShmPixbufWriter(const std::string& path);
-  void write_pixels(const uint8_t* pixels, int32_t width, int32_t height, bool force_opaque=false);
-
- private:
-   // Protects shm_ and data_.
-   ShmMutex mu_;
-   Shm shm_;
-   ShmPixbufData* data_;
-};
-
-#endif // SHM_PIXBUF_WRITER_H
+#endif // CONSTANTS_H_

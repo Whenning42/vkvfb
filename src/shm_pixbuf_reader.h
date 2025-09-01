@@ -23,36 +23,49 @@
 #include "shm.h"
 #include "shm_pixbuf_data.h"
 #include "timeout_sem.h"
+#include "shm_mutex.h"
+#include "pmutex.h"
+#include "constants.h"
 
+enum class StatusVal {
+  OK,
+  FAILED
+};
+
+struct ReadPixbuf {
+  StatusVal status = StatusVal::OK;
+  int32_t width = 0;
+  int32_t height = 0;
+  uint8_t* pixels = nullptr;
+
+  ReadPixbuf() = default;
+  ~ReadPixbuf() { free(pixels); }
+  
+  // ReadPixbuf is moveable, but not copyable.
+  ReadPixbuf(const ReadPixbuf&) = delete;
+  ReadPixbuf& operator=(const ReadPixbuf&) = delete;
+  ReadPixbuf(ReadPixbuf&& other) noexcept;
+  ReadPixbuf& operator=(ReadPixbuf&& other) noexcept;
+
+  void update(int32_t new_w, int32_t new_h, const uint8_t* data);
+};
 
 class ShmPixbufReader {
  public:
   ShmPixbufReader(const std::string& path);
-
-  // Callers are required to run any get or read functions between calls to acquire
-  // and release.
-  void acquire();
-  void release();
-  int32_t get_width();
-  int32_t get_height();
-  int32_t get_pixels_size();
-  // Will 'get_pixels_size()' bytes of data to 'out_pixels'.
-  void read_pixels(uint8_t* out_pixels);
+  const ReadPixbuf& read_pixels();
 
   // Exposed for testing.
   ShmPixbufData& get_data() { return *data_; };
   Shm& get_shm() {return shm_; };
-  Semaphore& sem() { return sem_; };
 
  private:
+  // shm_ and data_ are protected by mu_.
+  ShmMutex mu_;
   Shm shm_;
   ShmPixbufData* data_;
-  Semaphore sem_;
-  Semaphore::gen current_generation_;
 
-  #ifdef DEBUG
-  bool acquired_shm_ = false;
-  #endif
+  ReadPixbuf read_pixbuf_;
 };
 
 #endif // SHM_PIXBUF_READER_H

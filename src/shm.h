@@ -28,7 +28,8 @@ class Shm {
   // In 'w' mode, a new shm is opened at the give path.
   // In 'r' mode, it's required that a shm already exists at path and it's opened
   // for reading.
-  Shm(const std::string& path, char mode);
+  // Note: Calls to Shm(...) don't shrink existing shm allocations.
+  Shm(const std::string& path, char mode, size_t alloc_size);
   void resize(size_t new_size);
   void* map() { return map_; }
   size_t size() { return size_; }

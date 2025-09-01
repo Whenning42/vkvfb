@@ -14,27 +14,32 @@
  * limitations under the License.
  */
 
-#ifndef SHM_PIXBUF_WRITER_H
-#define SHM_PIXBUF_WRITER_H
+#include <tuple>
+#include <cstdint>
+#include "pmutex.h"
 
-#include <cstddef>
-#include <string>
-
-#include "shm.h"
-#include "shm_mutex.h"
-#include "shm_pixbuf_data.h"
-#include "timeout_sem.h"
-
-class ShmPixbufWriter {
+class FakePMutex {
  public:
-  ShmPixbufWriter(const std::string& path);
-  void write_pixels(const uint8_t* pixels, int32_t width, int32_t height, bool force_opaque=false);
+  FakePMutex(bool create): state_(LockState::LOCKED) {}
+  FakePMutex(const FakePMutex& other) = delete;
+  FakePMutex(const FakePMutex&& other) = delete;
+
+  LockResult lock() { return lock(UINT64_MAX); }
+  LockResult lock(uint64_t timeout_nanos) {
+    return LockResult{state_, PGuard()};
+  }
+  void unlock() {}
+
+  void reset() {
+    if (state_ == LockState::OWNERDEAD) {
+      state_ = LockState::LOCKED;
+    }
+  }
+
+  void SetState(LockState state) {
+    state_ = state;
+  }
 
  private:
-   // Protects shm_ and data_.
-   ShmMutex mu_;
-   Shm shm_;
-   ShmPixbufData* data_;
+  LockState state_;
 };
-
-#endif // SHM_PIXBUF_WRITER_H

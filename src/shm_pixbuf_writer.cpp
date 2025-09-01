@@ -20,6 +20,7 @@
 #include <cstring>
 
 #include "shm_pixbuf_data.h"
+#include "constants.h"
 
 namespace {
 
@@ -44,27 +45,32 @@ void memcpy_pixels(void* dst, const void* src, size_t size, bool force_opaque) {
   }
 }
 
-}
+} // namespace
 
-ShmPixbufWriter::ShmPixbufWriter(const std::string& path):
-  sem_(path + "_sem", /*create=*/true, /*initial_value=*/1) {
-  current_generation_ = sem_.wait(2'000'000'000);
-  shm_ = Shm(path, 'w');
-  data_ = new (shm_.map()) ShmPixbufData();
-  sem_.post(current_generation_);
+ShmPixbufWriter::ShmPixbufWriter(const std::string& path) : mu_(path + "_mu", /*create=*/true) {
+  shm_ = Shm(path, 'w', ShmPixbufData::pixbuf_struct_size(0, 0));
+  data_ = new (shm_.map()) ShmPixbufData('w');
 }
 
 void ShmPixbufWriter::write_pixels(const uint8_t* pixels, int32_t width, int32_t height, bool force_opaque) {
-  // Wait maximum 2 seconds for semaphore
-  current_generation_ = sem_.wait(2'000'000'000);
+  if (!pixels) {
+    fprintf(stderr, "ShmPixbufWriter::write_pixels: pixels cannot be null\n");
+    exit(1);
+  }
+  if (width <= 0 || height <= 0) {
+    return;
+  }
   
-  size_t new_shm_size = ShmPixbufData::pixbuf_struct_size(width, height);
-  size_t pixbuf_size = ShmPixbufData::pixbuf_size(width, height);
-  shm_.resize(new_shm_size);
-  data_ = (ShmPixbufData*)shm_.map();
-  data_->width = width;
-  data_->height = height;
-  memcpy_pixels(&data_->first_pixel, pixels, pixbuf_size, force_opaque);
-  
-  sem_.post(current_generation_);
+  LockResult res = mu_.mu().lock(2 * kOneSecNanos);
+  if (res.state == LockState::LOCKED) {
+    size_t new_shm_size = ShmPixbufData::pixbuf_struct_size(width, height);
+    size_t pixbuf_size = ShmPixbufData::pixbuf_size(width, height);
+    shm_.resize(new_shm_size);
+    data_ = (ShmPixbufData*)shm_.map();
+    data_->width = width;
+    data_->height = height;
+    memcpy_pixels(&data_->first_pixel, pixels, pixbuf_size, force_opaque);
+  } else if (res.state == LockState::OWNERDEAD) {
+    mu_.mu().reset();
+  }
 }

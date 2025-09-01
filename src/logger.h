@@ -66,7 +66,7 @@ inline void log(const char* channel, const char* fmt, ...) {
   }
 
   char process_s[32];
-  int process_slen = snprintf(process_s, 32, " tid: %d", gettid());
+  int process_slen = snprintf(process_s, 32, " [tid: %d] ", gettid());
   if (process_slen < 0) {
     perror("snprintf for process string.");
     process_slen = 0;

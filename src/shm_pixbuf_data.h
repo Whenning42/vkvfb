@@ -24,15 +24,16 @@
 #include <cstddef>
 #include <fcntl.h>
 #include <semaphore.h>
+#include "pmutex.h"
 
 struct ShmPixbufData {
-  // Field accesses are expected to be synchronized between processes by callers
+  // Field accesses must be externally synchronized.
   int32_t width = 0;
   int32_t height = 0;
   // A width*height*4 sized block of pixels, that starts here.
   uint8_t first_pixel;
 
-  ShmPixbufData() = default;
+  ShmPixbufData(char mode) {}
 
   static size_t pixbuf_size(int32_t width, int32_t height) {
     // Casting to size_t before multiplication protects against possible overflows at very high resolutions.

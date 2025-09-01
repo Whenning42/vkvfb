@@ -24,45 +24,29 @@
 #include <cstdlib>
 
 #include "shm_pixbuf_data.h"
+#include "utility.h"
+#include "logger.h"
 
 
-namespace {
 
-size_t round_to_page(size_t size) {
-  size_t ps = getpagesize();
-  return ps * ((size + ps - 1) / ps);
-}
-
-}
-
-Shm::Shm(const std::string& path, char mode) : mode_(mode) {
+Shm::Shm(const std::string& path, char mode, size_t alloc_size): mode_(mode) {
   int flags = O_RDWR;
   if (mode == 'w') {
     flags |= O_CREAT;
   }
   
   shm_fd_ = shm_open(path.c_str(), flags, 0644);
-  if (shm_fd_ == -1) {
-    perror("Failed to open shared memory");
-    exit(1);
-  }
-  
-  size_ = ShmPixbufData::pixbuf_struct_size(0, 0);
-  
+  CCHECK(shm_fd_ != -1, "Failed to open shared memory", errno);
+
+  size_ = round_to_page(alloc_size);
   if (mode == 'w') {
-    if (ftruncate(shm_fd_, size_) == -1) {
-      perror("Failed to truncate shared memory");
-      close(shm_fd_);
-      exit(1);
-    }
+    int r = posix_fallocate(shm_fd_, 0, size_);
+    CCHECK(r == 0, "Failed to allocate shared memory", r);
   }
   
   map_ = mmap(nullptr, size_, PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd_, 0);
-  if (map_ == MAP_FAILED) {
-    perror("Failed to map shared memory");
-    close(shm_fd_);
-    exit(1);
-  }
+  CCHECK(map_ != MAP_FAILED, "Failed to map shared memory", errno);
+  LOG(kLogSync, "Mapped shm to %p", map_);
 }
 
 void Shm::resize(size_t new_size) {
@@ -72,21 +56,14 @@ void Shm::resize(size_t new_size) {
   }
   
   if (mode_ == 'w') {
-    if (ftruncate(shm_fd_, new_size) == -1) {
-      perror("Failed to resize shared memory");
-      exit(1);
-    }
-  } else {
-    off_t fsize;
-    fsize = lseek(shm_fd_, 0, SEEK_END);
+    int r = ftruncate(shm_fd_, new_size);
+    CCHECK(r == 0, "Failed to allocate shared memory", errno);
   }
   
-  void* new_map = mremap(map_, size_, new_size, MREMAP_MAYMOVE);
-  if (new_map == MAP_FAILED) {
-    perror("Failed to remap shared memory");
-    exit(1);
-  }
+  void* map_val = mremap(map_, size_, new_size, MREMAP_MAYMOVE);
+  CCHECK(map_val != MAP_FAILED, "Failed to remap shared memory", errno);
+  LOG(kLogSync, "Remapped shm to %p", map_val);
   
-  map_ = new_map;
+  map_ = map_val;
   size_ = new_size;
 }

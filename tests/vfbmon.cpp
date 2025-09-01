@@ -24,6 +24,24 @@
 
 #include "shm_pixbuf_reader.h"
 
+// Return epoch time in seconds.
+double time_sec() {
+  struct timespec ts;
+  clock_gettime(CLOCK_REALTIME, &ts);
+  return ts.tv_sec + ts.tv_nsec / 1e9;
+}
+
+// Sleep for the given amount of time.
+void sleep_sec(double seconds) {
+  if (seconds > 0) {
+    struct timespec ts = {
+      (time_t)seconds,
+      (long)((seconds - (time_t)seconds) * 1e9)
+    };
+    nanosleep(&ts, nullptr);
+  }
+}
+
 class VfbMonitor {
  public:
   VfbMonitor(const std::string& window_id) : window_id_(window_id), reader_(window_id) {
@@ -36,8 +54,8 @@ class VfbMonitor {
     screen_ = DefaultScreen(display_);
     root_window_ = RootWindow(display_, screen_);
     
-    current_width_ = 0;
-    current_height_ = 0;
+    width_ = 0;
+    height_ = 0;
     window_ = None;
     image_ = nullptr;
     pixels_ = nullptr;
@@ -48,10 +66,7 @@ class VfbMonitor {
     const double frame_duration = 1.0 / 60.0; // 60 FPS in seconds
     
     while (true) {
-      struct timespec frame_start;
-      clock_gettime(CLOCK_MONOTONIC, &frame_start);
-      double frame_start_sec = frame_start.tv_sec + frame_start.tv_nsec / 1'000'000'000.0;
-      
+      double frame_start = time_sec();
       update_frame();
 
       // Keep the event queue processed.
@@ -60,20 +75,9 @@ class VfbMonitor {
         XNextEvent(display_, &event);
       }
       
-      struct timespec frame_end;
-      clock_gettime(CLOCK_MONOTONIC, &frame_end);
-      double frame_end_sec = frame_end.tv_sec + frame_end.tv_nsec / 1'000'000'000.0;
-      
-      double elapsed = frame_end_sec - frame_start_sec;
-      double sleep_time = frame_duration - elapsed;
-      
-      if (sleep_time > 0) {
-        struct timespec sleep_ts = {
-          (time_t)sleep_time,
-          (long)((sleep_time - (time_t)sleep_time) * 1'000'000'000.0)
-        };
-        nanosleep(&sleep_ts, nullptr);
-      }
+      // Sleep till next read.
+      double frame_end = time_sec();
+      sleep_sec(frame_duration - (frame_end - frame_start));
     }
   }
 
@@ -112,27 +116,8 @@ class VfbMonitor {
       printf("Resized X11 window to %dx%d\n", width, height);
     }
   }
-  
-  bool update_frame() {
-    reader_.acquire();
-    int32_t width = reader_.get_width();
-    int32_t height = reader_.get_height();
-    int32_t pixels_size = reader_.get_pixels_size();
-    
-    if (width <= 0 || height <= 0) {
-      reader_.release();
-      return false;
-    }
-    
-    if (width != current_width_ || height != current_height_) {
-      current_width_ = width;
-      current_height_ = height;
-      
-      if (pixels_) {
-        delete[] pixels_;
-      }
-      pixels_ = new uint8_t[pixels_size];
-      
+
+  void resize_window_and_image(int32_t width, int32_t height, uint8_t* data) {
       if (image_) {
         free(image_);
       }
@@ -147,20 +132,33 @@ class VfbMonitor {
                            DefaultVisual(display_, screen_),
                            DefaultDepth(display_, screen_),
                            ZPixmap, 0,
-                           reinterpret_cast<char*>(pixels_),
+                           reinterpret_cast<char*>(data),
                            width, height, 32, width * 4);
       if (!image_) {
-        reader_.release();
         printf("Failed to create XImage\n");
         exit(1);
       }
-      
       image_->byte_order = LSBFirst;
       image_->bitmap_bit_order = LSBFirst;
+  }
+  
+  bool update_frame() {
+    const ReadPixbuf& read = reader_.read_pixels();
+    if (read.status != StatusVal::OK) {
+      return false;
     }
-    reader_.read_pixels(pixels_);
-    reader_.release();
     
+    int32_t width = read.width;
+    int32_t height = read.height;
+    
+    if (width <= 0 || height <= 0) {
+      return false;
+    }
+    if (width != width_ || height != height_) {
+      width_ = width;
+      height_ = height;
+      resize_window_and_image(width, height, read.pixels);
+    }
     if (window_ != None && image_) {
       XPutImage(display_, window_, gc_, image_, 0, 0, 0, 0, width, height);
       XFlush(display_);
@@ -185,8 +183,8 @@ class VfbMonitor {
   GC gc_;
   XImage* image_;
   uint8_t* pixels_;
-  int32_t current_width_;
-  int32_t current_height_;
+  int32_t width_;
+  int32_t height_;
 };
 
 void print_usage(const char* program_name) {
