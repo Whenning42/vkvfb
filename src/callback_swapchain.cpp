@@ -148,7 +148,7 @@ CallbackSwapchain::CallbackSwapchain(
     };
 
     // Create the command buffer
-    VkResult res = functions_->vkAllocateCommandBuffers(device_, &command_buffer_info,
+    functions_->vkAllocateCommandBuffers(device_, &command_buffer_info,
                                          &image_data.command_buffer_);
     set_dispatch_table(device_, image_data.command_buffer_);
 
@@ -324,7 +324,7 @@ void CallbackSwapchain::CopyThreadFunc() {
       pending_images_.pop_front();
     }
 
-    VkResult ret = functions_->vkWaitForFences(
+    functions_->vkWaitForFences(
         device_, 1, &image_data_[pending_image].fence_, false, UINT64_MAX);
     functions_->vkResetFences(device_, 1, &image_data_[pending_image].fence_);
 

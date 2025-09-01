@@ -203,7 +203,7 @@ vkCreateDevice(VkPhysicalDevice gpu, const VkDeviceCreateInfo* pCreateInfo,
   VkLayerDeviceCreateInfo* layer_info = get_layer_link_info(pCreateInfo);
 
   if (pCreateInfo->ppEnabledExtensionNames) {
-    for (int i = 0; i < pCreateInfo->enabledExtensionCount; ++i) {
+    for (uint32_t i = 0; i < pCreateInfo->enabledExtensionCount; ++i) {
       LOG(kLogLayer, "Vkvfb running w/ enabled extension: %s\n", pCreateInfo->ppEnabledExtensionNames[i]);
     }
   }
@@ -310,8 +310,8 @@ vkCreateDevice(VkPhysicalDevice gpu, const VkDeviceCreateInfo* pCreateInfo,
   }
 
   {
-    auto swp_map = GetGlobalContext.SwapchainImagesMap();
-    swp_map[*pDevice] = {};
+    auto swp_map = GetGlobalContext().GetSwapchainImageMap();
+    (*swp_map)[*pDevice] = {};
   }
 
   LOG(kLogLayer, "Created device: %p\n", *pDevice);
