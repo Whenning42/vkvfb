@@ -1,5 +1,8 @@
 #!/bin/bash
 
+FACTORIO_PATH="$HOME/Games/factorio"
+
+# Other useful options:
 # DISABLE_SWAPCHAIN=1 \
 # LD_LIBRARY_PATH=$(pwd)/third_party/Vulkan-ValidationLayers/build/layers:$LD_LIBRARY_PATH \
 # VK_LOADER_LAYERS_ENABLE="VK_LAYER_KHRONOS_validation" \
@@ -10,4 +13,4 @@
 VK_LAYER_PATH=$(pwd)/build/
 VK_LOADER_LAYERS_ENABLE="VK_LAYER_VKVFB_vkvfb" \
 MESA_LOADER_DRIVER_OVERRIDE=zink \
-gdb ~/Games/factorio/bin/x64/factorio
+${FACTORIO_PATH}/bin/x64/factorio
