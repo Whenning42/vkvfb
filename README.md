@@ -1,24 +1,22 @@
-Vkvfb is a Vulkan layer that replaces Vulkan's default presentation behavior with
-presentation to a shared memory pixel buffer. This makes it a useful tool for
-building window capture or streaming tools, especially if you want to run these
-tools in contexts where you can access the graphics card, but don't have an accelerated
-presentation path, such as Xvfb nested X11 sessions.
+Vkvfb is a Vulkan layer that captures frames to a shared-memory buffer. It can
+be used to build capture or streaming tools or to run apps when you have Vulkan access
+but no Vulkan display path (e.g. Xvfb sessions on a machine with a graphics card).
 
-Note: Vkvfb only supports Linux and X11 with no plans to expand support.
+Note: Vkvfb only supports Linux and X11.
 
 # Getting Started
 
-Dependencies: Vulkan, Gtest, Xlib, Xcb, and Xvfb (for some tests).
+Dependencies: Vulkan, GTest, Xlib, XCB, and Xvfb (for some tests).
 
 ```
 meson setup build
-(cd build; meson compile)
-(cd build; meson test --print-errorlogs) # Optional, run tests.
+meson compile -C build
+meson test -C build --print-errorlogs # Optional: run tests
 ```
 
 For example usage, see [factorio_test.sh](tests/factorio_test.sh)
 
-<> TODO: Update usage when we've got python pixbuf reader bindings available.
+<!-- TODO: Update usage when we've got Python pixbuf reader bindings available. -->
 
 # Acknowledgements
 
@@ -28,12 +26,11 @@ much of its code. Thank you vk_callback_swapchain devs!
 
 # Roadmap
 
-This project should be fairly stable at this point. I might add support for Windows,
-Mac, or Wayland, but it's not likely. I'll also add any missing presentation support
-such as supporting presentation of non-RGBA8 images, on an as needed basis for
-supporting apps that I'm interested in.
+This project should be fairly stable. I'll add additional platforms
+(Mac/Windows/Wayland) or presentation support as needed for my use cases.
 
 # Contributing
 
-I'll make an effort to engage with issues, feature requests, or pull requests, but
-no guarentees.
+Issues, feature requests, or pull requests are all welcome, but no guarantees that
+I'll respond to them. For major fixes or changes, open an issue before submitting
+a pull request.
