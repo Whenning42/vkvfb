@@ -48,6 +48,8 @@ struct ReadPixbuf {
 
 class PixbufReader {
  public:
+  // 'path' should be the name of the window you're trying to connect to.
+  // You can get it from xwininfo, or from the bottom of `ls -1tr /dev/shm`.
   PixbufReader(const std::string& path);
   const ReadPixbuf& read_pixels();
 
