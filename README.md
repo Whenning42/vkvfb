@@ -14,7 +14,14 @@ meson compile -C build
 meson test -C build --print-errorlogs # Optional: run tests
 ```
 
-For example usage, see [factorio_test.sh](tests/factorio_test.sh)
+For demos of enabling and using the layer see
+[factorio_test.sh](tests/factorio_test.sh) and [vfbmon](tests/vfbmon.cpp). Note: Vfbmon
+requires you to pass in the X11 window id of the app you're capturing. You can get this
+from xwininfo, xlib/xcb, or from looking at vkvfb's /dev/shm files and guessing which
+one corresponds to your window.
+
+To build something with vkvfb, you'd specify the loader env vars yourself and directly
+use the PixbufReader class.
 
 <!-- TODO: Update usage when we've got Python pixbuf reader bindings available. -->
 
