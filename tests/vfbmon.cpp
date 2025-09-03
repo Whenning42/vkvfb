@@ -45,7 +45,9 @@ void sleep_sec(double seconds) {
 
 class VfbMonitor {
  public:
-  VfbMonitor(const std::string& window_id) : window_id_(window_id), reader_(window_id) {
+  VfbMonitor(const std::string& window_id)
+      : window_id_(window_id),
+        reader_(std::move(PixbufReader::Create(window_id).value_or_die())) {
     display_ = XOpenDisplay(nullptr);
     if (!display_) {
       printf("Failed to open X11 display\n");
@@ -61,7 +63,7 @@ class VfbMonitor {
     image_ = nullptr;
     pixels_ = nullptr;
   }
-  
+
   void run() {
     printf("Starting VFB monitor for window ID: %s\n", window_id_.c_str());
     const double frame_duration = 1.0 / 60.0; // 60 FPS in seconds
@@ -145,10 +147,10 @@ class VfbMonitor {
   
   bool update_frame() {
     const ReadPixbuf& read = reader_.read_pixels();
-    if (read.status != StatusVal::OK) {
+    if (read.code != ErrorCode::OK) {
       return false;
     }
-    
+
     int32_t width = read.width;
     int32_t height = read.height;
     

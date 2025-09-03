@@ -27,7 +27,7 @@
 
 void EXPECT_PIXBUF_EQ(const ReadPixbuf& pixbuf, uint8_t* other_data,
                       int32_t other_w, int32_t other_h) {
-  EXPECT_EQ(pixbuf.status, StatusVal::OK);
+  EXPECT_EQ(pixbuf.code, ErrorCode::OK);
   EXPECT_EQ(pixbuf.width, other_w);
   EXPECT_EQ(pixbuf.height, other_h);
   size_t data_size = other_w * other_h * 4;
@@ -35,8 +35,13 @@ void EXPECT_PIXBUF_EQ(const ReadPixbuf& pixbuf, uint8_t* other_data,
 }
 
 TEST(Pixbuf, ReadWriteTest) {
-  PixbufWriter writer = PixbufWriter("test_buf");
-  PixbufReader reader = PixbufReader("test_buf");
+  StatusOr<PixbufWriter> writer_result = PixbufWriter::Create("test_buf");
+  ASSERT_TRUE(writer_result.ok());
+  PixbufWriter writer = std::move(writer_result.value());
+
+  StatusOr<PixbufReader> reader_result = PixbufReader::Create("test_buf");
+  ASSERT_TRUE(reader_result.ok());
+  PixbufReader reader = std::move(reader_result.value());
 
   size_t pixels_0_size = 320 * 240 * 4;
   uint8_t* pixels_0 = (uint8_t*)malloc(pixels_0_size);

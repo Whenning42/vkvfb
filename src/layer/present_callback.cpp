@@ -16,6 +16,17 @@
 
 #include "present_callback.h"
 
+#include <cstdlib>
+
+#include "logger.h"
+
+SwapchainData::SwapchainData(int32_t w, int32_t h, PixbufWriter&& writer_param,
+                             VkCompositeAlphaFlagBitsKHR mode)
+    : width(w),
+      height(h),
+      writer(std::move(writer_param)),
+      composite_mode(mode) {}
+
 void present_callback(void* user_data, uint8_t* pixels, size_t pixels_size) {
   SwapchainData& swapchain_data = *(SwapchainData*)user_data;
   bool force_opaque = false;

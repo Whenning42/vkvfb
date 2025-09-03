@@ -47,11 +47,21 @@ void memcpy_pixels(void* dst, const void* src, size_t size, bool force_opaque) {
 
 }  // namespace
 
-PixbufWriter::PixbufWriter(const std::string& path)
-    : mu_(path + "_mu", /*create=*/true) {
-  shm_ = Shm(path, 'w', PixbufData::pixbuf_struct_size(0, 0));
-  data_ = new (shm_.map()) PixbufData('w');
+StatusOr<PixbufWriter> PixbufWriter::Create(const std::string& path) {
+  StatusOr<ShmMutex> mu_result =
+      ShmMutex::Create(path + "_mu", /*create=*/true);
+  RETURN_IF_ERROR(mu_result);
+
+  StatusOr<Shm> shm_result =
+      Shm::Create(path, 'w', PixbufData::pixbuf_struct_size(0, 0));
+  RETURN_IF_ERROR(shm_result);
+
+  PixbufData* data = new (shm_result->map()) PixbufData('w');
+  return PixbufWriter(std::move(*mu_result), std::move(*shm_result), data);
 }
+
+PixbufWriter::PixbufWriter(ShmMutex&& mu, Shm&& shm, PixbufData* data)
+    : mu_(std::move(mu)), shm_(std::move(shm)), data_(data) {}
 
 void PixbufWriter::write_pixels(const uint8_t* pixels, int32_t width,
                                 int32_t height, bool force_opaque) {

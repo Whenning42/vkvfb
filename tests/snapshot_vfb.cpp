@@ -28,14 +28,19 @@ int main(int argc, char* argv[]) {
 
     std::string pixbuf_path = argv[1];
 
-    PixbufReader reader(pixbuf_path);
+    StatusOr<PixbufReader> reader_result = PixbufReader::Create(pixbuf_path);
+    if (!reader_result.ok()) {
+      printf("Failed to create PixbufReader\n");
+      return 1;
+    }
+    PixbufReader reader = std::move(reader_result.value());
 
     const ReadPixbuf& result = reader.read_pixels();
-    if (result.status != StatusVal::OK) {
-        printf("Failed to read pixels\n");
-        return 1;
+    if (result.code != ErrorCode::OK) {
+      printf("Failed to read pixels\n");
+      return 1;
     }
-    
+
     int32_t width = result.width;
     int32_t height = result.height;
     int32_t pixels_size = width * height * 4; // Assume RGBA format

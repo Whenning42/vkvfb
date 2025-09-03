@@ -27,6 +27,7 @@
 
 inline const char* kLogLayer = "LAYER";
 inline const char* kLogSync = "SYNC";
+inline const char* kLogError = "ERROR";
 
 namespace logger {
 
@@ -93,5 +94,6 @@ inline void log(const char* channel, const char* fmt, ...) {
 }
 
 #define LOG(...) ::logger::log(__VA_ARGS__)
+#define ERROR(...) ::logger::log(kLogError, __VA_ARGS__)
 
 #endif // LOGGER_H_

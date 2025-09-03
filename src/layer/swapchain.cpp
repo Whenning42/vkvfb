@@ -290,8 +290,10 @@ VKAPI_ATTR VkResult VKAPI_CALL vkCreateSwapchainKHR(
   const uint32_t w = pCreateInfo->imageExtent.width;
   const uint32_t h = pCreateInfo->imageExtent.height;
   const VkCompositeAlphaFlagBitsKHR composite_mode = pCreateInfo->compositeAlpha;
-  generic_unique_ptr present_data =
-      make_generic_unique(new SwapchainData(w, h, surface.window_name, composite_mode));
+
+  generic_unique_ptr present_data = make_generic_unique(new SwapchainData(
+      w, h, std::move(PixbufWriter::Create(surface.window_name).value_or_die()),
+      composite_mode));
   swapchain->SetCallback(present_callback, std::move(present_data));
 
   return VK_SUCCESS;

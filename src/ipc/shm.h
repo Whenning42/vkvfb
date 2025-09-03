@@ -19,22 +19,31 @@
 
 #include <string>
 
+#include "status_or.h"
+
 class Shm {
  public:
   // Constructs an empty default shared memory object.
   Shm() = default;
 
+  // Factory function to create a Shm object.
   // Mode must be either 'r' or 'w'.
   // In 'w' mode, a new shm is opened at the give path.
-  // In 'r' mode, it's required that a shm already exists at path and it's opened
-  // for reading.
-  // Note: Calls to Shm(...) don't shrink existing shm allocations.
-  Shm(const std::string& path, char mode, size_t alloc_size);
+  // In 'r' mode, it's required that a shm already exists at path and it's
+  // opened for reading. Note: Calls to Shm(...) don't shrink existing shm
+  // allocations. Returns StatusOr<Shm> with NOT_FOUND status if shared memory
+  // creation/opening fails.
+  static StatusOr<Shm> Create(const std::string& path, char mode,
+                              size_t alloc_size);
+  ~Shm();
   void resize(size_t new_size);
   void* map() { return map_; }
   size_t size() { return size_; }
 
  private:
+  // Private constructor, use Create() instead.
+  Shm(int shm_fd, char mode, size_t size, void* map);
+
   int shm_fd_ = 0;
   char mode_ = 'r';
   size_t size_ = 0;

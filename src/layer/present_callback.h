@@ -32,8 +32,8 @@ struct SwapchainData {
   PixbufWriter writer;
   VkCompositeAlphaFlagBitsKHR composite_mode;
 
-  SwapchainData(int32_t w, int32_t h, const std::string& window_name, VkCompositeAlphaFlagBitsKHR mode)
-    : width(w), height(h), writer(window_name), composite_mode(mode) {}
+  SwapchainData(int32_t w, int32_t h, PixbufWriter&& writer,
+                VkCompositeAlphaFlagBitsKHR mode);
 };
 
 void present_callback(void* user_data, uint8_t* pixels, size_t pixels_size);

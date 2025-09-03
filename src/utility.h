@@ -17,10 +17,12 @@
 #ifndef UTILITY_H_
 #define UTILITY_H_
 
+#include <unistd.h>
+
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <unistd.h>
+#include <string>
 
 // If the given expression evaluates to zero, calls perror to print errno and exits.
 #define CCHECK_ERRNO(expr, msg) \
@@ -58,6 +60,13 @@
 inline size_t round_to_page(size_t size) {
   size_t ps = getpagesize();
   return ps * ((size + ps - 1) / ps);
+}
+
+// Converts an error number to a string representation.
+inline std::string errno_to_string(int error_num) {
+  char error_str[256];
+  strerror_r(error_num, error_str, sizeof(error_str));
+  return std::string(error_str);
 }
 
 #endif  // UTILITY_H_

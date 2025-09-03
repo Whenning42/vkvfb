@@ -23,16 +23,24 @@
 #include "ipc/shm.h"
 #include "ipc/shm_mutex.h"
 #include "pixbuf/pixbuf_data.h"
+#include "status_or.h"
 
 class PixbufWriter {
  public:
-  PixbufWriter(const std::string& path);
+  // Factory function to create a PixbufWriter.
+  // Returns StatusOr<PixbufWriter> with appropriate error status if creation
+  // fails.
+  static StatusOr<PixbufWriter> Create(const std::string& path);
+
   // Writes the given pixel data to the shared pixbuf. If force_opaque is true,
   // overrides the copied data's alpha channel (assuming RGBA8) to be 255.
   void write_pixels(const uint8_t* pixels, int32_t width, int32_t height,
                     bool force_opaque = false);
 
  private:
+  // Private constructor, use Create() instead.
+  PixbufWriter(ShmMutex&& mu, Shm&& shm, PixbufData* data);
+
   // Protects shm_ and data_.
   ShmMutex mu_;
   Shm shm_;

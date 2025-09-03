@@ -20,9 +20,10 @@
 #include <cstring>
 
 #include "pixbuf_data.h"
+#include "status_or.h"
 
 ReadPixbuf::ReadPixbuf(ReadPixbuf&& other) noexcept
-    : status(other.status),
+    : code(other.code),
       width(other.width),
       height(other.height),
       pixels(other.pixels) {
@@ -32,7 +33,7 @@ ReadPixbuf::ReadPixbuf(ReadPixbuf&& other) noexcept
 ReadPixbuf& ReadPixbuf::operator=(ReadPixbuf&& other) noexcept {
   if (this != &other) {
     free(pixels);
-    status = other.status;
+    code = other.code;
     width = other.width;
     height = other.height;
     pixels = other.pixels;
@@ -52,16 +53,27 @@ void ReadPixbuf::update(int32_t new_w, int32_t new_h, const uint8_t* data) {
   memcpy(pixels, data, data_size);
 }
 
-PixbufReader::PixbufReader(const std::string& path)
-    : mu_(path + "_mu", /*create=*/false) {
-  shm_ = Shm(path, 'r', PixbufData::pixbuf_struct_size(0, 0));
+StatusOr<PixbufReader> PixbufReader::Create(const std::string& path) {
+  StatusOr<ShmMutex> mu_result =
+      ShmMutex::Create(path + "_mu", /*create=*/false);
+  RETURN_IF_ERROR(mu_result);
+
+  StatusOr<Shm> shm =
+      Shm::Create(path, 'r', PixbufData::pixbuf_struct_size(0, 0));
+  RETURN_IF_ERROR(shm);
+
+  return PixbufReader(std::move(*mu_result), std::move(*shm));
+}
+
+PixbufReader::PixbufReader(ShmMutex&& mu, Shm&& shm)
+    : mu_(std::move(mu)), shm_(std::move(shm)) {
   data_ = (PixbufData*)shm_.map();
 }
 
 const ReadPixbuf& PixbufReader::read_pixels() {
   LockResult lock = mu_.mu().lock(kOneSecNanos);
   if (lock.state == LockState::OWNERDEAD || lock.state == LockState::TIMEOUT) {
-    read_pixbuf_.status = StatusVal::FAILED;
+    read_pixbuf_.code = ErrorCode::GENERAL;
     return read_pixbuf_;
   }
 
@@ -71,7 +83,7 @@ const ReadPixbuf& PixbufReader::read_pixels() {
   shm_.resize(pixbuf_struct_size);
   data_ = (PixbufData*)shm_.map();
   read_pixbuf_.update(w, h, &data_->first_pixel);
-  read_pixbuf_.status = StatusVal::OK;
+  read_pixbuf_.code = ErrorCode::OK;
 
   return read_pixbuf_;
 }

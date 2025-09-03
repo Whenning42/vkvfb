@@ -25,26 +25,53 @@
 #include <cstdlib>
 
 #include "logger.h"
+#include "status_or.h"
 #include "utility.h"
 
-Shm::Shm(const std::string& path, char mode, size_t alloc_size): mode_(mode) {
+StatusOr<Shm> Shm::Create(const std::string& path, char mode,
+                          size_t alloc_size) {
   int flags = O_RDWR;
   if (mode == 'w') {
     flags |= O_CREAT;
   }
-  
-  shm_fd_ = shm_open(path.c_str(), flags, 0644);
-  CCHECK(shm_fd_ != -1, "Failed to open shared memory", errno);
 
-  size_ = round_to_page(alloc_size);
-  if (mode == 'w') {
-    int r = posix_fallocate(shm_fd_, 0, size_);
-    CCHECK(r == 0, "Failed to allocate shared memory", r);
+  int shm_fd = shm_open(path.c_str(), flags, 0644);
+  if (shm_fd == -1) {
+    return StatusVal(ErrorCode::NOT_FOUND);
   }
-  
-  map_ = mmap(nullptr, size_, PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd_, 0);
-  CCHECK(map_ != MAP_FAILED, "Failed to map shared memory", errno);
-  LOG(kLogSync, "Mapped shm to %p", map_);
+
+  size_t size = round_to_page(alloc_size);
+  if (mode == 'w') {
+    int r = posix_fallocate(shm_fd, 0, size);
+    if (r != 0) {
+      ERROR("Failed to allocate shared memory: %s", errno_to_string(r).c_str());
+      close(shm_fd);
+      return StatusVal(ErrorCode::GENERAL);
+    }
+  }
+
+  void* map =
+      mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
+  if (map == MAP_FAILED) {
+    ERROR("Failed to map shared memory: %s", errno_to_string(errno).c_str());
+    close(shm_fd);
+    return StatusVal(ErrorCode::GENERAL);
+  }
+  LOG(kLogSync, "Mapped shm to %p", map);
+
+  return Shm(shm_fd, mode, size, map);
+}
+
+Shm::Shm(int shm_fd, char mode, size_t size, void* map)
+    : shm_fd_(shm_fd), mode_(mode), size_(size), map_(map) {}
+
+Shm::~Shm() {
+  if (map_ != nullptr) {
+    munmap(map_, size_);
+  }
+  if (shm_fd_ != 0) {
+    close(shm_fd_);
+  }
 }
 
 void Shm::resize(size_t new_size) {

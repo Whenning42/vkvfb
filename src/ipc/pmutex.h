@@ -74,6 +74,7 @@ class PMutex {
       CCHECK_EVAL(pthread_mutex_init(&pmu_, &attr), "mutex_init");
     }
   }
+  ~PMutex() = default;
   PMutex(const PMutex& other) = delete;
   PMutex(const PMutex&& other) = delete;
 

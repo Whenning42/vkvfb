@@ -17,36 +17,54 @@
 #ifndef IPC_SHM_MUTEX_H_
 #define IPC_SHM_MUTEX_H_
 
+#include <errno.h>
+#include <fcntl.h>
+#include <sys/file.h>
+#include <unistd.h>
+
+#include <string>
+
 #include "pmutex.h"
 #include "shm.h"
-#include <string>
-#include <fcntl.h>
-#include <unistd.h>
-#include <sys/file.h>
-#include <errno.h>
+#include "status_or.h"
 #include "utility.h"
-
 
 class ShmMutex {
  public:
-  ShmMutex(const std::string& path, bool create) {
+  // Factory function to create a ShmMutex.
+  // Returns StatusOr<ShmMutex> with appropriate error status if creation fails.
+  static StatusOr<ShmMutex> Create(const std::string& path, bool create) {
     const std::string lock_path = "/tmp/" + path;
     int fd = open(lock_path.c_str(), O_CREAT | O_RDWR | O_CLOEXEC, 0644);
-    CCHECK(fd != -1, "Failed to open ShmMutex lock file", errno);
+    if (fd == -1) {
+      return StatusVal(ErrorCode::GENERAL);
+    }
     int r = flock(fd, LOCK_EX | LOCK_NB);
     if (r == -1 && errno == EWOULDBLOCK) {
       create = false;
-    } else {
-      CCHECK(r != -1, "Unexpected flock error", errno);
+    } else if (r == -1) {
+      close(fd);
+      return StatusVal(ErrorCode::GENERAL);
     }
 
-    shm_ = Shm(path, create ? 'w' : 'r', sizeof(PMutex));
-    mu_ = new (shm_.map()) PMutex(create);
+    StatusOr<Shm> shm_result =
+        Shm::Create(path, create ? 'w' : 'r', sizeof(PMutex));
+    RETURN_IF_ERROR(shm_result);
+
+    PMutex* mu = new (shm_result->map()) PMutex(create);
+    close(fd);
+    return ShmMutex(std::move(*shm_result), mu);
   }
 
+  // We manually call mu_'s destructor, since it was placement-new'd into shared
+  // memory.
+  ~ShmMutex() { mu_->~PMutex(); }
   PMutex& mu() { return *mu_; }
 
  private:
+  // Private constructor, use Create() instead.
+  ShmMutex(Shm&& shm, PMutex* mu) : shm_(std::move(shm)), mu_(mu) {}
+
   Shm shm_;
   PMutex* mu_;
 };

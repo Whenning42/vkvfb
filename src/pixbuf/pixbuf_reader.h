@@ -25,11 +25,10 @@
 #include "ipc/shm.h"
 #include "ipc/shm_mutex.h"
 #include "pixbuf/pixbuf_data.h"
-
-enum class StatusVal { OK, FAILED };
+#include "status_or.h"
 
 struct ReadPixbuf {
-  StatusVal status = StatusVal::OK;
+  ErrorCode code = ErrorCode::OK;
   int32_t width = 0;
   int32_t height = 0;
   uint8_t* pixels = nullptr;
@@ -48,9 +47,13 @@ struct ReadPixbuf {
 
 class PixbufReader {
  public:
+  // Factory function to create a PixbufReader.
   // 'path' should be the name of the window you're trying to connect to.
   // You can get it from xwininfo, or from the bottom of `ls -1tr /dev/shm`.
-  PixbufReader(const std::string& path);
+  // Returns StatusOr<PixbufReader> with a NOT_FOUND status if the shared-memory
+  // at 'path' cannot be opened.
+  static StatusOr<PixbufReader> Create(const std::string& path);
+
   const ReadPixbuf& read_pixels();
 
   // Exposed for testing.
@@ -58,6 +61,9 @@ class PixbufReader {
   Shm& get_shm() { return shm_; };
 
  private:
+  // Private constructor, use Create() instead.
+  PixbufReader(ShmMutex&& mu, Shm&& shm);
+
   // shm_ and data_ are protected by mu_.
   ShmMutex mu_;
   Shm shm_;
